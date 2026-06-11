@@ -43,7 +43,7 @@ struct MenuBarView: View {
             SearchField(text: $filterText)
 
             ScrollView {
-                LazyVStack(spacing: 0) {
+                VStack(spacing: 0) {
                     if tasksByProject.isEmpty {
                         emptyState
                     } else {
@@ -57,7 +57,7 @@ struct MenuBarView: View {
                     }
                 }
             }
-            .frame(maxHeight: 320)
+            .frame(height: 320)
 
             Divider()
 
