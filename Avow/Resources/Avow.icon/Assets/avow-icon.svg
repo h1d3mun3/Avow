@@ -1,0 +1,33 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <title>Avow app icon - commit node (transparent)</title>
+  <defs>
+    <linearGradient id="avow-g" gradientUnits="userSpaceOnUse" x1="220" y1="220" x2="790" y2="790">
+      <stop offset="0" stop-color="#A6D4F2"/>
+      <stop offset="0.33" stop-color="#9B8CE8"/>
+      <stop offset="0.63" stop-color="#EE6FA8"/>
+      <stop offset="0.95" stop-color="#F6AC66"/>
+    </linearGradient>
+  </defs>
+
+  <!-- spokes: stop at node edges -->
+  <g stroke="url(#avow-g)" stroke-width="30" stroke-linecap="round" fill="none">
+    <line x1="391.1" y1="391.1" x2="289" y2="289"/>
+    <line x1="632.9" y1="391.1" x2="735" y2="289"/>
+    <line x1="391.1" y1="632.9" x2="289" y2="735"/>
+    <line x1="632.9" y1="632.9" x2="735" y2="735"/>
+  </g>
+
+  <!-- satellite nodes (hollow) -->
+  <g stroke="url(#avow-g)" stroke-width="30" fill="none">
+    <circle cx="236" cy="236" r="60"/>
+    <circle cx="788" cy="236" r="60"/>
+    <circle cx="236" cy="788" r="60"/>
+    <circle cx="788" cy="788" r="60"/>
+  </g>
+
+  <!-- commit ring (hollow) -->
+  <circle cx="512" cy="512" r="156" stroke="url(#avow-g)" stroke-width="30" fill="none"/>
+
+  <!-- committed node -->
+  <circle cx="512" cy="512" r="84" fill="url(#avow-g)"/>
+</svg>
