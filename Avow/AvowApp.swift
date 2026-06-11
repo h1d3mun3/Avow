@@ -8,25 +8,71 @@
 import SwiftUI
 import SwiftData
 
+import SwiftUI
+import SwiftData
+
 @main
 struct AvowApp: App {
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self,
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+    let modelContainer: ModelContainer
+    @State private var appState = AppState()
 
+    init() {
         do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+            let schema = Schema([
+                Project.self,
+                Task.self,
+                TimeEntry.self,
+            ])
+            let config = ModelConfiguration(
+                "Avow",
+                schema: schema,
+                isStoredInMemoryOnly: false
+            )
+            modelContainer = try ModelContainer(
+                for: schema,
+                configurations: [config]
+            )
         } catch {
-            fatalError("Could not create ModelContainer: \(error)")
+            fatalError("Failed to initialize ModelContainer: \(error)")
         }
-    }()
+    }
 
     var body: some Scene {
-        WindowGroup {
-            ContentView()
+        // MARK: - Menu bar popover
+
+        MenuBarExtra {
+            MenuBarView()
+                .environment(appState)
+                .modelContainer(modelContainer)
+        } label: {
+            MenuBarLabel(appState: appState)
         }
-        .modelContainer(sharedModelContainer)
+        .menuBarExtraStyle(.window)
+
+        // MARK: - Dashboard window
+
+        Window("Dashboard", id: "dashboard") {
+            DashboardView()
+                .environment(appState)
+                .modelContainer(modelContainer)
+        }
+        .defaultSize(width: 900, height: 600)
+        .defaultPosition(.center)
+    }
+}
+
+// MARK: - Menu bar label
+
+struct MenuBarLabel: View {
+    let appState: AppState
+
+    var body: some View {
+        HStack(spacing: 4) {
+            if let entry = appState.activeEntry {
+                Text(entry.duration.timerFormatted)
+                    .monospacedDigit()
+            }
+            Image(systemName: appState.isTracking ? "clock.fill" : "clock")
+        }
     }
 }
