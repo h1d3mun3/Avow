@@ -8,9 +8,6 @@
 import SwiftUI
 import SwiftData
 
-import SwiftUI
-import SwiftData
-
 @main
 struct AvowApp: App {
     let modelContainer: ModelContainer
