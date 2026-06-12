@@ -102,46 +102,10 @@ private struct TaskEntryGroup: View {
             }
 
             ForEach(entries) { entry in
-                EntryRow(entry: entry)
+                TimeEntryRow(entry: entry)
             }
 
             Divider()
         }
-    }
-}
-
-// MARK: - Entry row
-
-private struct EntryRow: View {
-    let entry: TimeEntry
-
-    var body: some View {
-        HStack(spacing: 4) {
-            Text(entry.startDate, format: .dateTime.hour().minute())
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .monospacedDigit()
-            Text("–")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
-            if let end = entry.endDate {
-                Text(end, format: .dateTime.hour().minute())
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
-            } else {
-                Text("running")
-                    .font(.caption)
-                    .foregroundStyle(.tint)
-            }
-
-            Spacer()
-
-            Text(entry.duration.shortFormatted)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .monospacedDigit()
-        }
-        .padding(.leading, 8)
     }
 }
