@@ -150,6 +150,11 @@ private struct TaskDetailRow: View {
     var isCompleted: Bool = false
     let onToggle: () -> Void
 
+    @Environment(\.modelContext) private var modelContext
+    @State private var isRenaming = false
+    @State private var renameText = ""
+    @FocusState private var fieldFocused: Bool
+
     private var taskDuration: TimeInterval {
         task.timeEntries.reduce(0.0) { $0 + $1.duration }
     }
@@ -162,20 +167,47 @@ private struct TaskDetailRow: View {
             }
             .buttonStyle(.plain)
 
-            Text(task.name)
-                .font(.subheadline)
-                .strikethrough(isCompleted)
-                .foregroundStyle(isCompleted ? .secondary : .primary)
+            if isRenaming {
+                TextField("", text: $renameText)
+                    .font(.subheadline)
+                    .textFieldStyle(.plain)
+                    .focused($fieldFocused)
+                    .onSubmit { commitRename() }
+                    .onExitCommand { isRenaming = false }
+            } else {
+                Text(task.name)
+                    .font(.subheadline)
+                    .strikethrough(isCompleted)
+                    .foregroundStyle(isCompleted ? .secondary : .primary)
 
-            Spacer()
+                Spacer()
 
-            Text(taskDuration.shortFormatted)
-                .font(.caption)
-                .monospacedDigit()
-                .foregroundStyle(.secondary)
+                Text(taskDuration.shortFormatted)
+                    .font(.caption)
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+            }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(.quaternary.opacity(isCompleted ? 0.2 : 0.0), in: RoundedRectangle(cornerRadius: 8))
+        .contextMenu {
+            Button("Rename") {
+                isRenaming = true
+                renameText = task.name
+                fieldFocused = true
+            }
+        }
+    }
+
+    private func commitRename() {
+        let trimmed = renameText.trimmingCharacters(in: .whitespaces)
+        if !trimmed.isEmpty {
+            task.name = trimmed
+            task.updatedAt = .now
+            try? modelContext.save()
+        }
+        isRenaming = false
+        renameText = ""
     }
 }
