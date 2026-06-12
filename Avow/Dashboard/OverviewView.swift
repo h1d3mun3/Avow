@@ -11,6 +11,8 @@ struct OverviewView: View {
     @Query
     private var allEntries: [TimeEntry]
 
+    @State private var quickStartFilter = ""
+
     private var totalDuration: TimeInterval {
         allEntries.reduce(0.0) { $0 + $1.duration }
     }
@@ -30,15 +32,35 @@ struct OverviewView: View {
             .reduce(0.0) { $0 + $1.duration }
     }
 
-    private var projectsWithActiveTasks: [(project: Project, tasks: [Task])] {
+    private var allActiveTasks: [Task] {
         projects
             .filter { !$0.isArchived }
-            .compactMap { project in
-                let active = project.tasks
-                    .filter { $0.status == .active }
-                    .sorted { $0.name < $1.name }
-                return active.isEmpty ? nil : (project, active)
-            }
+            .flatMap { $0.tasks }
+            .filter { $0.status == .active }
+    }
+
+    // Default: up to 5 tasks sorted by most recently tracked
+    private var recentTasks: [Task] {
+        Array(
+            allActiveTasks
+                .sorted { a, b in
+                    let aDate = a.timeEntries.map(\.startDate).max() ?? .distantPast
+                    let bDate = b.timeEntries.map(\.startDate).max() ?? .distantPast
+                    return aDate > bDate
+                }
+                .prefix(5)
+        )
+    }
+
+    // Search: all active tasks matching the query
+    private var searchResults: [Task] {
+        allActiveTasks
+            .filter { $0.name.localizedCaseInsensitiveContains(quickStartFilter) }
+            .sorted { $0.name < $1.name }
+    }
+
+    private var quickStartTasks: [Task] {
+        quickStartFilter.isEmpty ? recentTasks : searchResults
     }
 
     var body: some View {
@@ -64,27 +86,27 @@ struct OverviewView: View {
                 }
 
                 // Quick start
-                if !projectsWithActiveTasks.isEmpty {
+                if !allActiveTasks.isEmpty {
                     Text("Quick start")
                         .font(.subheadline)
                         .fontWeight(.medium)
                         .foregroundStyle(.secondary)
 
-                    ForEach(projectsWithActiveTasks, id: \.project.id) { project, tasks in
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(project.name)
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                                .padding(.leading, 4)
+                    QuickStartSearchField(text: $quickStartFilter)
 
-                            ForEach(tasks) { task in
-                                let isActive = appState.activeEntry?.task?.id == task.id
-                                QuickStartRow(task: task, isActive: isActive) {
-                                    if isActive {
-                                        appState.stopTracking(context: modelContext)
-                                    } else {
-                                        appState.switchTask(to: task, context: modelContext)
-                                    }
+                    if quickStartTasks.isEmpty {
+                        Text("No tasks found")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                            .padding(.leading, 4)
+                    } else {
+                        ForEach(quickStartTasks) { task in
+                            let isActive = appState.activeEntry?.task?.id == task.id
+                            QuickStartRow(task: task, isActive: isActive) {
+                                if isActive {
+                                    appState.stopTracking(context: modelContext)
+                                } else {
+                                    appState.switchTask(to: task, context: modelContext)
                                 }
                             }
                         }
@@ -144,6 +166,34 @@ struct OverviewView: View {
     }
 }
 
+// MARK: - Quick start search field
+
+private struct QuickStartSearchField: View {
+    @Binding var text: String
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+            TextField("Search tasks…", text: $text)
+                .textFieldStyle(.plain)
+                .font(.subheadline)
+            if !text.isEmpty {
+                Button { text = "" } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 6))
+    }
+}
+
 // MARK: - Quick start row
 
 private struct QuickStartRow: View {
@@ -167,10 +217,18 @@ private struct QuickStartRow: View {
                     .font(.title3)
                     .foregroundStyle(isActive ? AnyShapeStyle(.red) : AnyShapeStyle(.secondary))
 
-                Text(task.name)
-                    .font(.subheadline)
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(task.name)
+                        .font(.subheadline)
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                    if let projectName = task.project?.name {
+                        Text(projectName)
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                            .lineLimit(1)
+                    }
+                }
 
                 Spacer()
 
