@@ -53,11 +53,11 @@ final class AppState {
 
     private func startDisplayTimer() {
         stopDisplayTimer()
-        displayTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-            DispatchQueue.main.async {
-                self?.tick += 1
-            }
+        let timer = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
+            self?.tick += 1
         }
+        RunLoop.main.add(timer, forMode: .common)
+        displayTimer = timer
     }
 
     private func stopDisplayTimer() {
