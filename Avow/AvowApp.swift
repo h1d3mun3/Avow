@@ -44,6 +44,9 @@ struct AvowApp: App {
                 .modelContainer(modelContainer)
         } label: {
             MenuBarLabel(appState: appState)
+                .task {
+                    appState.restoreActiveEntry(context: modelContainer.mainContext)
+                }
         }
         .menuBarExtraStyle(.window)
 
@@ -79,15 +82,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             forName: NSWindow.willCloseNotification,
             object: nil,
             queue: .main
-        ) { _ in
-            DispatchQueue.main.async {
-                let hasDashboard = NSApp.windows.contains {
-                    $0.isVisible && $0.title == "Dashboard"
-                }
-                if !hasDashboard {
-                    NSApp.setActivationPolicy(.accessory)
-                }
-            }
+        ) { notification in
+            guard let window = notification.object as? NSWindow,
+                  window.title == "Dashboard" else { return }
+            NSApp.setActivationPolicy(.accessory)
         }
     }
 }
@@ -100,8 +98,9 @@ struct MenuBarLabel: View {
     var body: some View {
         HStack(spacing: 4) {
             if let entry = appState.activeEntry {
+                let _ = appState.tick
                 Text(entry.duration.timerFormatted)
-                    .monospacedDigit()
+                    .fontDesign(.monospaced)
             }
             Image(systemName: appState.isTracking ? "clock.fill" : "clock")
         }

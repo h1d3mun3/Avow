@@ -90,7 +90,12 @@ struct MenuBarView: View {
             TodayTotalLabel()
             Spacer()
             Button {
-                openWindow(id: "dashboard")
+                if let window = NSApp.windows.first(where: { $0.title == "Dashboard" }) {
+                    window.makeKeyAndOrderFront(nil)
+                } else {
+                    openWindow(id: "dashboard")
+                }
+                NSApp.activate()
             } label: {
                 Label("Dashboard", systemImage: "square.grid.2x2")
                     .font(.caption)
