@@ -26,6 +26,7 @@ struct DashboardView: View {
 
     enum SidebarItem: Hashable {
         case overview
+        case calendar
         case project(Project)
     }
 
@@ -51,6 +52,9 @@ struct DashboardView: View {
         List(selection: $selection) {
             NavigationLink(value: SidebarItem.overview) {
                 Label("Overview", systemImage: "square.grid.2x2")
+            }
+            NavigationLink(value: SidebarItem.calendar) {
+                Label("Calendar", systemImage: "calendar")
             }
 
             Section("Projects") {
@@ -187,6 +191,8 @@ struct DashboardView: View {
         switch selection {
         case .overview, .none:
             OverviewView()
+        case .calendar:
+            CalendarView()
         case .project(let project):
             ProjectDetailView(project: project)
         }
