@@ -124,7 +124,6 @@ struct SettingsView: View {
                 ExportSchema.ExportProject(
                     id: project.id,
                     name: project.name,
-                    colorHex: project.colorHex,
                     createdAt: project.createdAt,
                     tasks: project.tasks.map { task in
                         ExportSchema.ExportTask(

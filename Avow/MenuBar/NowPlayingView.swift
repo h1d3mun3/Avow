@@ -21,14 +21,9 @@ struct NowPlayingView: View {
                     .lineLimit(1)
 
                 if let project = entry.task?.project {
-                    HStack(spacing: 4) {
-                        Circle()
-                            .fill(Color(hex: project.colorHex))
-                            .frame(width: 6, height: 6)
-                        Text(project.name)
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
+                    Text(project.name)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                 }
             }
 

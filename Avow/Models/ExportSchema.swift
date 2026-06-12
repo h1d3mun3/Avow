@@ -10,7 +10,6 @@ struct ExportSchema: Codable {
     struct ExportProject: Codable {
         let id: UUID
         let name: String
-        let colorHex: String
         let createdAt: Date
         let tasks: [ExportTask]
     }

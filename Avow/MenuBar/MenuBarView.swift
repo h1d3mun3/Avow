@@ -138,9 +138,6 @@ private struct ProjectSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 6) {
-                Circle()
-                    .fill(Color(hex: project.colorHex))
-                    .frame(width: 7, height: 7)
                 Text(project.name)
                     .font(.caption)
                     .fontWeight(.medium)

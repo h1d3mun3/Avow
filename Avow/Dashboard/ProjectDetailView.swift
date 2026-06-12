@@ -39,21 +39,9 @@ struct ProjectDetailView: View {
             VStack(alignment: .leading, spacing: 20) {
                 // Summary cards
                 HStack(spacing: 12) {
-                    SummaryCard(
-                        label: "Total tracked",
-                        value: totalDuration.shortFormatted,
-                        color: Color(hex: project.colorHex)
-                    )
-                    SummaryCard(
-                        label: "This week",
-                        value: thisWeekDuration.shortFormatted,
-                        color: Color(hex: project.colorHex)
-                    )
-                    SummaryCard(
-                        label: "Active tasks",
-                        value: "\(activeTasks.count)",
-                        color: Color(hex: project.colorHex)
-                    )
+                    SummaryCard(label: "Total tracked", value: totalDuration.shortFormatted)
+                    SummaryCard(label: "This week", value: thisWeekDuration.shortFormatted)
+                    SummaryCard(label: "Active tasks", value: "\(activeTasks.count)")
                 }
 
                 // Add task
@@ -125,7 +113,6 @@ struct ProjectDetailView: View {
 private struct SummaryCard: View {
     let label: String
     let value: String
-    let color: Color
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -139,7 +126,7 @@ private struct SummaryCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
-        .background(color.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 8))
     }
 }
 

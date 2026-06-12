@@ -48,9 +48,6 @@ struct DashboardView: View {
                 ForEach(projects) { project in
                     NavigationLink(value: SidebarItem.project(project)) {
                         HStack(spacing: 8) {
-                            Circle()
-                                .fill(Color(hex: project.colorHex))
-                                .frame(width: 8, height: 8)
                             if renamingProject?.id == project.id {
                                 TextField("", text: $renameText)
                                     .textFieldStyle(.plain)

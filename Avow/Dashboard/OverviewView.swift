@@ -62,19 +62,16 @@ struct OverviewView: View {
                     let fraction = totalDuration > 0 ? duration / totalDuration : 0
 
                     HStack(spacing: 10) {
-                        Circle()
-                            .fill(Color(hex: project.colorHex))
-                            .frame(width: 8, height: 8)
                         Text(project.name)
                             .font(.subheadline)
                         Spacer()
                         GeometryReader { geo in
                             RoundedRectangle(cornerRadius: 3)
-                                .fill(Color(hex: project.colorHex).opacity(0.3))
+                                .fill(.quaternary)
                                 .frame(width: geo.size.width)
                                 .overlay(alignment: .leading) {
                                     RoundedRectangle(cornerRadius: 3)
-                                        .fill(Color(hex: project.colorHex))
+                                        .fill(.secondary)
                                         .frame(width: geo.size.width * fraction)
                                 }
                         }
