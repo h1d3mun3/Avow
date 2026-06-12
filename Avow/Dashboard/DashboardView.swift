@@ -5,7 +5,7 @@ struct DashboardView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.modelContext) private var modelContext
 
-    @Query(sort: \Project.name)
+    @Query(sort: \Project.sortOrder)
     private var projects: [Project]
 
     @State private var selectedProject: Project?
@@ -75,6 +75,7 @@ struct DashboardView: View {
                         }
                     }
                 }
+                .onMove(perform: moveProjects)
             }
         }
         .listStyle(.sidebar)
@@ -102,6 +103,17 @@ struct DashboardView: View {
                 .padding(.vertical, 8)
             }
         }
+    }
+
+    // MARK: - Reorder
+
+    private func moveProjects(from source: IndexSet, to destination: Int) {
+        var reordered = projects
+        reordered.move(fromOffsets: source, toOffset: destination)
+        for (index, project) in reordered.enumerated() {
+            project.sortOrder = index
+        }
+        try? modelContext.save()
     }
 
     // MARK: - Rename

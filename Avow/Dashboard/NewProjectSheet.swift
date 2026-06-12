@@ -64,7 +64,8 @@ struct NewProjectSheet: View {
     private func createProject() {
         let trimmed = name.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return }
-        let project = Project(name: trimmed)
+        let count = (try? modelContext.fetchCount(FetchDescriptor<Project>())) ?? 0
+        let project = Project(name: trimmed, sortOrder: count)
         modelContext.insert(project)
         try? modelContext.save()
         dismiss()
