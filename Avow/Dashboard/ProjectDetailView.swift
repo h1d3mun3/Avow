@@ -6,6 +6,7 @@ struct ProjectDetailView: View {
 
     @Environment(\.modelContext) private var modelContext
     @State private var newTaskName = ""
+    @State private var selectedTask: Task?
 
     private var activeTasks: [Task] {
         project.tasks
@@ -35,6 +36,19 @@ struct ProjectDetailView: View {
     }
 
     var body: some View {
+        HStack(spacing: 0) {
+            taskListPanel
+            if let task = selectedTask {
+                Divider()
+                timeEntryPanel(for: task)
+            }
+        }
+        .navigationTitle(project.name)
+    }
+
+    // MARK: - Left panel
+
+    private var taskListPanel: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 // Summary cards
@@ -61,11 +75,16 @@ struct ProjectDetailView: View {
                         .foregroundStyle(.secondary)
 
                     ForEach(activeTasks) { task in
-                        TaskDetailRow(task: task) {
-                            task.status = .completed
-                            task.updatedAt = .now
-                            try? modelContext.save()
-                        }
+                        TaskDetailRow(
+                            task: task,
+                            isSelected: selectedTask?.id == task.id,
+                            onToggle: {
+                                task.status = .completed
+                                task.updatedAt = .now
+                                try? modelContext.save()
+                            },
+                            onSelect: { selectedTask = task }
+                        )
                     }
                 }
 
@@ -77,11 +96,17 @@ struct ProjectDetailView: View {
                         .foregroundStyle(.tertiary)
 
                     ForEach(completedTasks) { task in
-                        TaskDetailRow(task: task, isCompleted: true) {
-                            task.status = .active
-                            task.updatedAt = .now
-                            try? modelContext.save()
-                        }
+                        TaskDetailRow(
+                            task: task,
+                            isCompleted: true,
+                            isSelected: selectedTask?.id == task.id,
+                            onToggle: {
+                                task.status = .active
+                                task.updatedAt = .now
+                                try? modelContext.save()
+                            },
+                            onSelect: { selectedTask = task }
+                        )
                     }
                 }
 
@@ -95,8 +120,58 @@ struct ProjectDetailView: View {
             }
             .padding(20)
         }
-        .navigationTitle(project.name)
     }
+
+    // MARK: - Right panel
+
+    private func timeEntryPanel(for task: Task) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Header
+            HStack {
+                Text(task.name)
+                    .font(.headline)
+                    .lineLimit(1)
+                Spacer()
+                Button {
+                    selectedTask = nil
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+
+            Divider()
+
+            // Entries
+            let entries = task.timeEntries.sorted { $0.startDate > $1.startDate }
+            if entries.isEmpty {
+                VStack {
+                    Spacer()
+                    ContentUnavailableView(
+                        "No records",
+                        systemImage: "clock",
+                        description: Text("Start tracking this task to create records.")
+                    )
+                    Spacer()
+                }
+            } else {
+                ScrollView {
+                    VStack(spacing: 6) {
+                        ForEach(entries) { entry in
+                            TimeEntryRow(entry: entry)
+                        }
+                    }
+                    .padding(12)
+                }
+            }
+        }
+        .frame(minWidth: 260, maxWidth: .infinity)
+    }
+
+    // MARK: - Helpers
 
     private func addTask() {
         let name = newTaskName.trimmingCharacters(in: .whitespaces)
@@ -135,7 +210,9 @@ private struct SummaryCard: View {
 private struct TaskDetailRow: View {
     let task: Task
     var isCompleted: Bool = false
+    var isSelected: Bool = false
     let onToggle: () -> Void
+    var onSelect: () -> Void = {}
 
     @Environment(\.modelContext) private var modelContext
     @State private var isRenaming = false
@@ -177,7 +254,14 @@ private struct TaskDetailRow: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(.quaternary.opacity(isCompleted ? 0.2 : 0.0), in: RoundedRectangle(cornerRadius: 8))
+        .background(
+            isSelected
+                ? AnyShapeStyle(Color.accentColor.opacity(0.12))
+                : AnyShapeStyle(.quaternary.opacity(isCompleted ? 0.2 : 0.0)),
+            in: RoundedRectangle(cornerRadius: 8)
+        )
+        .contentShape(Rectangle())
+        .onTapGesture { onSelect() }
         .contextMenu {
             Button("Rename") {
                 isRenaming = true
@@ -196,5 +280,94 @@ private struct TaskDetailRow: View {
         }
         isRenaming = false
         renameText = ""
+    }
+}
+
+// MARK: - Time entry row
+
+private struct TimeEntryRow: View {
+    let entry: TimeEntry
+
+    @Environment(\.modelContext) private var modelContext
+    @State private var isEditing = false
+    @State private var editStart: Date = .now
+    @State private var editEnd: Date = .now
+
+    var body: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Label(
+                    entry.startDate.formatted(date: .abbreviated, time: .shortened),
+                    systemImage: "play.circle"
+                )
+                .font(.caption)
+
+                if let end = entry.endDate {
+                    Label(
+                        end.formatted(date: .abbreviated, time: .shortened),
+                        systemImage: "stop.circle"
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                } else {
+                    Label("Running", systemImage: "record.circle")
+                        .font(.caption)
+                        .foregroundStyle(.green)
+                }
+            }
+
+            Spacer()
+
+            Text(entry.duration.shortFormatted)
+                .font(.caption)
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
+
+            Button {
+                editStart = entry.startDate
+                editEnd = entry.endDate ?? .now
+                isEditing = true
+            } label: {
+                Image(systemName: "pencil")
+            }
+            .buttonStyle(.plain)
+            .help("Edit times")
+
+            Button(role: .destructive) {
+                modelContext.delete(entry)
+                try? modelContext.save()
+            } label: {
+                Image(systemName: "trash")
+                    .foregroundStyle(.red)
+            }
+            .buttonStyle(.plain)
+            .help("Delete record")
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 8))
+        .popover(isPresented: $isEditing) {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Edit Record")
+                    .font(.headline)
+                DatePicker("Start", selection: $editStart, displayedComponents: [.date, .hourAndMinute])
+                if entry.endDate != nil {
+                    DatePicker("End", selection: $editEnd, in: editStart..., displayedComponents: [.date, .hourAndMinute])
+                }
+                HStack {
+                    Button("Cancel") { isEditing = false }
+                    Spacer()
+                    Button("Save") {
+                        entry.startDate = editStart
+                        if entry.endDate != nil { entry.endDate = editEnd }
+                        try? modelContext.save()
+                        isEditing = false
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+            }
+            .padding(16)
+            .frame(width: 300)
+        }
     }
 }
