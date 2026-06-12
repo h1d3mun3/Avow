@@ -8,6 +8,7 @@ final class Project {
 
     var name: String
     var sortOrder: Int
+    var isArchived: Bool
     var createdAt: Date
     var updatedAt: Date
 
@@ -18,6 +19,7 @@ final class Project {
         self.id = UUID()
         self.name = name
         self.sortOrder = sortOrder
+        self.isArchived = false
         self.createdAt = .now
         self.updatedAt = .now
         self.tasks = []

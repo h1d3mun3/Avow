@@ -14,6 +14,15 @@ struct DashboardView: View {
     @State private var renamingProject: Project?
     @State private var renameText: String = ""
     @FocusState private var renameFieldFocused: Bool
+    @State private var showArchived = false
+
+    private var activeProjects: [Project] {
+        projects.filter { !$0.isArchived }
+    }
+
+    private var archivedProjects: [Project] {
+        projects.filter { $0.isArchived }.sorted { $0.name < $1.name }
+    }
 
     enum SidebarItem: Hashable {
         case overview
@@ -45,7 +54,7 @@ struct DashboardView: View {
             }
 
             Section("Projects") {
-                ForEach(projects) { project in
+                ForEach(activeProjects) { project in
                     NavigationLink(value: SidebarItem.project(project)) {
                         HStack(spacing: 8) {
                             if renamingProject?.id == project.id {
@@ -73,9 +82,51 @@ struct DashboardView: View {
                             renameText = project.name
                             renameFieldFocused = true
                         }
+                        Button("Archive") {
+                            project.isArchived = true
+                            project.updatedAt = .now
+                            if case .project(let selected) = selection, selected.id == project.id {
+                                selection = .overview
+                            }
+                            try? modelContext.save()
+                        }
                     }
                 }
                 .onMove(perform: moveProjects)
+            }
+
+            if !archivedProjects.isEmpty {
+                Section {
+                    DisclosureGroup(isExpanded: $showArchived) {
+                        ForEach(archivedProjects) { project in
+                            NavigationLink(value: SidebarItem.project(project)) {
+                                HStack(spacing: 8) {
+                                    Text(project.name)
+                                        .foregroundStyle(.secondary)
+                                    Spacer()
+                                    let total = project.tasks
+                                        .flatMap(\.timeEntries)
+                                        .reduce(0.0) { $0 + $1.duration }
+                                    Text(total.shortFormatted)
+                                        .font(.caption)
+                                        .foregroundStyle(.tertiary)
+                                        .monospacedDigit()
+                                }
+                            }
+                            .contextMenu {
+                                Button("Unarchive") {
+                                    project.isArchived = false
+                                    project.updatedAt = .now
+                                    try? modelContext.save()
+                                }
+                            }
+                        }
+                    } label: {
+                        Text("Archived")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
             }
         }
         .listStyle(.sidebar)
@@ -108,7 +159,7 @@ struct DashboardView: View {
     // MARK: - Reorder
 
     private func moveProjects(from source: IndexSet, to destination: Int) {
-        var reordered = projects
+        var reordered = activeProjects
         reordered.move(fromOffsets: source, toOffset: destination)
         for (index, project) in reordered.enumerated() {
             project.sortOrder = index
