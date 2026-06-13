@@ -2,10 +2,15 @@ import Foundation
 
 struct ExportService {
 
-    func buildJSONData(from projects: [Project]) throws -> Data {
+    /// Escapes a field for RFC 4180 CSV: wraps in quotes and doubles any internal quote.
+    static func csvEscape(_ field: String) -> String {
+        "\"" + field.replacingOccurrences(of: "\"", with: "\"\"") + "\""
+    }
+
+    func buildJSONData(from projects: [Project], exportedAt: Date = .now) throws -> Data {
         let schema = ExportSchema(
             version: ExportSchema.version,
-            exportedAt: .now,
+            exportedAt: exportedAt,
             projects: projects.map { project in
                 ExportSchema.ExportProject(
                     id: project.id,
@@ -51,7 +56,7 @@ struct ExportService {
             let start = isoFormatter.string(from: entry.startDate)
             let end = entry.endDate.map { isoFormatter.string(from: $0) } ?? ""
             let duration = Int(entry.duration)
-            csv += "\"\(project)\",\"\(task)\",\(start),\(end),\(duration)\n"
+            csv += "\(Self.csvEscape(project)),\(Self.csvEscape(task)),\(start),\(end),\(duration)\n"
         }
         return csv
     }
