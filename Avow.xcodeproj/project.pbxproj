@@ -18,20 +18,12 @@
 			remoteGlobalIDString = 83B3B7AA2FDAE0B200F7BE6F;
 			remoteInfo = Avow;
 		};
-		83B3B7C52FDAE0B300F7BE6F /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 83B3B7A32FDAE0B200F7BE6F /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 83B3B7AA2FDAE0B200F7BE6F;
-			remoteInfo = Avow;
-		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		835B4A262FDAE89E00591B90 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		83B3B7AB2FDAE0B200F7BE6F /* Avow.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Avow.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		83B3B7BA2FDAE0B300F7BE6F /* AvowTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AvowTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		83B3B7C42FDAE0B300F7BE6F /* AvowUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AvowUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -43,11 +35,6 @@
 		83B3B7BD2FDAE0B300F7BE6F /* AvowTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = AvowTests;
-			sourceTree = "<group>";
-		};
-		83B3B7C72FDAE0B300F7BE6F /* AvowUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = AvowUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -67,13 +54,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		83B3B7C12FDAE0B300F7BE6F /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -83,7 +63,6 @@
 				835B4A262FDAE89E00591B90 /* README.md */,
 				83B3B7AD2FDAE0B200F7BE6F /* Avow */,
 				83B3B7BD2FDAE0B300F7BE6F /* AvowTests */,
-				83B3B7C72FDAE0B300F7BE6F /* AvowUITests */,
 				83B3B7AC2FDAE0B200F7BE6F /* Products */,
 			);
 			sourceTree = "<group>";
@@ -93,7 +72,6 @@
 			children = (
 				83B3B7AB2FDAE0B200F7BE6F /* Avow.app */,
 				83B3B7BA2FDAE0B300F7BE6F /* AvowTests.xctest */,
-				83B3B7C42FDAE0B300F7BE6F /* AvowUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -146,29 +124,6 @@
 			productReference = 83B3B7BA2FDAE0B300F7BE6F /* AvowTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		83B3B7C32FDAE0B300F7BE6F /* AvowUITests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 83B3B7D42FDAE0B300F7BE6F /* Build configuration list for PBXNativeTarget "AvowUITests" */;
-			buildPhases = (
-				83B3B7C02FDAE0B300F7BE6F /* Sources */,
-				83B3B7C12FDAE0B300F7BE6F /* Frameworks */,
-				83B3B7C22FDAE0B300F7BE6F /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				83B3B7C62FDAE0B300F7BE6F /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				83B3B7C72FDAE0B300F7BE6F /* AvowUITests */,
-			);
-			name = AvowUITests;
-			packageProductDependencies = (
-			);
-			productName = AvowUITests;
-			productReference = 83B3B7C42FDAE0B300F7BE6F /* AvowUITests.xctest */;
-			productType = "com.apple.product-type.bundle.ui-testing";
-		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -183,10 +138,6 @@
 						CreatedOnToolsVersion = 26.5;
 					};
 					83B3B7B92FDAE0B300F7BE6F = {
-						CreatedOnToolsVersion = 26.5;
-						TestTargetID = 83B3B7AA2FDAE0B200F7BE6F;
-					};
-					83B3B7C32FDAE0B300F7BE6F = {
 						CreatedOnToolsVersion = 26.5;
 						TestTargetID = 83B3B7AA2FDAE0B200F7BE6F;
 					};
@@ -208,7 +159,6 @@
 			targets = (
 				83B3B7AA2FDAE0B200F7BE6F /* Avow */,
 				83B3B7B92FDAE0B300F7BE6F /* AvowTests */,
-				83B3B7C32FDAE0B300F7BE6F /* AvowUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -223,13 +173,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		83B3B7B82FDAE0B300F7BE6F /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		83B3B7C22FDAE0B300F7BE6F /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -253,13 +196,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		83B3B7C02FDAE0B300F7BE6F /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -267,11 +203,6 @@
 			isa = PBXTargetDependency;
 			target = 83B3B7AA2FDAE0B200F7BE6F /* Avow */;
 			targetProxy = 83B3B7BB2FDAE0B300F7BE6F /* PBXContainerItemProxy */;
-		};
-		83B3B7C62FDAE0B300F7BE6F /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 83B3B7AA2FDAE0B200F7BE6F /* Avow */;
-			targetProxy = 83B3B7C52FDAE0B300F7BE6F /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -330,7 +261,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 26.5;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -388,7 +319,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 26.5;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = macosx;
@@ -470,7 +401,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 9UHBV5AP46;
 				GENERATE_INFOPLIST_FILE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 26.5;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.h1d3mun3.AvowTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -491,7 +422,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 9UHBV5AP46;
 				GENERATE_INFOPLIST_FILE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 26.5;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.h1d3mun3.AvowTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -501,44 +432,6 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Avow.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Avow";
-			};
-			name = Release;
-		};
-		83B3B7D52FDAE0B300F7BE6F /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 9UHBV5AP46;
-				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.h1d3mun3.AvowUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TEST_TARGET_NAME = Avow;
-			};
-			name = Debug;
-		};
-		83B3B7D62FDAE0B300F7BE6F /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 9UHBV5AP46;
-				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.h1d3mun3.AvowUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TEST_TARGET_NAME = Avow;
 			};
 			name = Release;
 		};
@@ -568,15 +461,6 @@
 			buildConfigurations = (
 				83B3B7D22FDAE0B300F7BE6F /* Debug */,
 				83B3B7D32FDAE0B300F7BE6F /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		83B3B7D42FDAE0B300F7BE6F /* Build configuration list for PBXNativeTarget "AvowUITests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				83B3B7D52FDAE0B300F7BE6F /* Debug */,
-				83B3B7D62FDAE0B300F7BE6F /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
