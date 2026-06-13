@@ -15,29 +15,15 @@ struct CalendarSidebarSection: View {
     private let calendar = Calendar.current
 
     private var activeDates: Set<Date> {
-        Set(allEntries.map { calendar.startOfDay(for: $0.startDate) })
+        entriesByDay(allEntries, calendar: calendar)
     }
 
     private var monthDays: [Date?] {
-        guard let monthStart = calendar.date(from: calendar.dateComponents([.year, .month], from: displayMonth)),
-              let range = calendar.range(of: .day, in: .month, for: monthStart)
-        else { return [] }
-
-        let firstWeekday = calendar.component(.weekday, from: monthStart)
-        let offset = (firstWeekday - calendar.firstWeekday + 7) % 7
-
-        var days: [Date?] = Array(repeating: nil, count: offset)
-        for i in 0..<range.count {
-            days.append(calendar.date(byAdding: .day, value: i, to: monthStart))
-        }
-        while days.count % 7 != 0 { days.append(nil) }
-        return days
+        Avow.monthDays(for: displayMonth, calendar: calendar)
     }
 
     private var shortWeekdaySymbols: [String] {
-        let symbols = calendar.veryShortWeekdaySymbols
-        let first = calendar.firstWeekday - 1
-        return Array(symbols[first...] + symbols[..<first])
+        weekdaySymbols(calendar: calendar)
     }
 
     var body: some View {
