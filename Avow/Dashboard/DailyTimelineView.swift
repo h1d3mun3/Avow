@@ -35,23 +35,29 @@ struct DailyTimelineView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                summaryHeader
+        VStack(alignment: .leading, spacing: 0) {
+            summaryHeader
+                .padding(20)
 
-                if entries.isEmpty {
-                    ContentUnavailableView(
-                        "No entries",
-                        systemImage: "clock",
-                        description: Text("No time was tracked on this day.")
-                    )
-                } else {
-                    ForEach(groupedByTask, id: \.task?.id) { group in
-                        TaskEntryGroup(task: group.task, entries: group.entries)
+            Divider()
+
+            if entries.isEmpty {
+                ContentUnavailableView(
+                    "No entries",
+                    systemImage: "clock",
+                    description: Text("No time was tracked on this day.")
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 20) {
+                        ForEach(groupedByTask, id: \.task?.id) { group in
+                            TaskEntryGroup(task: group.task, entries: group.entries)
+                        }
                     }
+                    .padding(20)
                 }
             }
-            .padding(20)
         }
     }
 

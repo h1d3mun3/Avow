@@ -64,105 +64,106 @@ struct OverviewView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                // Summary cards
-                HStack(spacing: 12) {
-                    SummaryCard(
-                        label: "Total tracked",
-                        value: totalDuration.shortFormatted,
-                        sub: "\(projects.count) projects"
-                    )
-                    SummaryCard(
-                        label: "This week",
-                        value: thisWeekDuration.shortFormatted,
-                        sub: ""
-                    )
-                    SummaryCard(
-                        label: "Today",
-                        value: todayDuration.shortFormatted,
-                        sub: ""
-                    )
-                }
+        if projects.isEmpty {
+            ContentUnavailableView(
+                "No projects yet",
+                systemImage: "folder",
+                description: Text("Create a project to start tracking your time.")
+            )
+            .navigationTitle("Overview")
+        } else {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    // Summary cards
+                    HStack(spacing: 12) {
+                        SummaryCard(
+                            label: "Total tracked",
+                            value: totalDuration.shortFormatted,
+                            sub: "\(projects.count) projects"
+                        )
+                        SummaryCard(
+                            label: "This week",
+                            value: thisWeekDuration.shortFormatted,
+                            sub: ""
+                        )
+                        SummaryCard(
+                            label: "Today",
+                            value: todayDuration.shortFormatted,
+                            sub: ""
+                        )
+                    }
 
-                // Quick start
-                if !allActiveTasks.isEmpty {
-                    Text("Quick start")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundStyle(.secondary)
+                    // Quick start
+                    if !allActiveTasks.isEmpty {
+                        Text("Quick start")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.secondary)
 
-                    QuickStartSearchField(text: $quickStartFilter)
+                        QuickStartSearchField(text: $quickStartFilter)
 
-                    if quickStartTasks.isEmpty {
-                        Text("No tasks found")
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                            .padding(.leading, 4)
-                    } else {
-                        ForEach(quickStartTasks) { task in
-                            let isActive = appState.activeEntry?.task?.id == task.id
-                            QuickStartRow(task: task, isActive: isActive) {
-                                if isActive {
-                                    appState.stopTracking(context: modelContext)
-                                } else {
-                                    appState.switchTask(to: task, context: modelContext)
+                        if quickStartTasks.isEmpty {
+                            Text("No tasks found")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                                .padding(.leading, 4)
+                        } else {
+                            ForEach(quickStartTasks) { task in
+                                let isActive = appState.activeEntry?.task?.id == task.id
+                                QuickStartRow(task: task, isActive: isActive) {
+                                    if isActive {
+                                        appState.stopTracking(context: modelContext)
+                                    } else {
+                                        appState.switchTask(to: task, context: modelContext)
+                                    }
                                 }
                             }
                         }
                     }
-                }
 
-                // Project breakdown
-                Text("Time by project")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundStyle(.secondary)
+                    // Project breakdown
+                    Text("Time by project")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.secondary)
 
-                ForEach(projects) { project in
-                    let duration = project.tasks
-                        .flatMap(\.timeEntries)
-                        .reduce(0.0) { $0 + $1.duration }
-                    let fraction = totalDuration > 0 ? duration / totalDuration : 0
+                    ForEach(projects) { project in
+                        let duration = project.tasks
+                            .flatMap(\.timeEntries)
+                            .reduce(0.0) { $0 + $1.duration }
+                        let fraction = totalDuration > 0 ? duration / totalDuration : 0
 
-                    HStack(spacing: 10) {
-                        Text(project.name)
-                            .font(.subheadline)
-                        Spacer()
-                        GeometryReader { geo in
-                            RoundedRectangle(cornerRadius: 3)
-                                .fill(.quaternary)
-                                .frame(width: geo.size.width)
-                                .overlay(alignment: .leading) {
-                                    RoundedRectangle(cornerRadius: 3)
-                                        .fill(.secondary)
-                                        .frame(width: geo.size.width * fraction)
-                                }
+                        HStack(spacing: 10) {
+                            Text(project.name)
+                                .font(.subheadline)
+                            Spacer()
+                            GeometryReader { geo in
+                                RoundedRectangle(cornerRadius: 3)
+                                    .fill(.quaternary)
+                                    .frame(width: geo.size.width)
+                                    .overlay(alignment: .leading) {
+                                        RoundedRectangle(cornerRadius: 3)
+                                            .fill(.secondary)
+                                            .frame(width: geo.size.width * fraction)
+                                    }
+                            }
+                            .frame(width: 100, height: 6)
+                            Text(duration.shortFormatted)
+                                .font(.caption)
+                                .monospacedDigit()
+                                .foregroundStyle(.secondary)
+                                .frame(width: 50, alignment: .trailing)
+                            Text(String(format: "%.0f%%", fraction * 100))
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                                .frame(width: 36, alignment: .trailing)
                         }
-                        .frame(width: 100, height: 6)
-                        Text(duration.shortFormatted)
-                            .font(.caption)
-                            .monospacedDigit()
-                            .foregroundStyle(.secondary)
-                            .frame(width: 50, alignment: .trailing)
-                        Text(String(format: "%.0f%%", fraction * 100))
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                            .frame(width: 36, alignment: .trailing)
                     }
                 }
-
-                if projects.isEmpty {
-                    ContentUnavailableView(
-                        "No projects yet",
-                        systemImage: "folder",
-                        description: Text("Create a project to start tracking your time.")
-                    )
-                }
+                .padding(20)
             }
-            .padding(20)
+            .navigationTitle("Overview")
         }
-        .navigationTitle("Overview")
     }
 }
 

@@ -49,16 +49,14 @@ struct ProjectDetailView: View {
     // MARK: - Left panel
 
     private var taskListPanel: some View {
-        ScrollView {
+        VStack(alignment: .leading, spacing: 0) {
+            // Fixed header: summary cards + add task field
             VStack(alignment: .leading, spacing: 20) {
-                // Summary cards
                 HStack(spacing: 12) {
                     SummaryCard(label: "Total tracked", value: totalDuration.shortFormatted)
                     SummaryCard(label: "This week", value: thisWeekDuration.shortFormatted)
                     SummaryCard(label: "Active tasks", value: "\(activeTasks.count)")
                 }
-
-                // Add task
                 HStack {
                     TextField("New task name…", text: $newTaskName)
                         .textFieldStyle(.roundedBorder)
@@ -66,59 +64,66 @@ struct ProjectDetailView: View {
                     Button("Add") { addTask() }
                         .disabled(newTaskName.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
-
-                // Active tasks
-                if !activeTasks.isEmpty {
-                    Text("Active tasks")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundStyle(.secondary)
-
-                    ForEach(activeTasks) { task in
-                        TaskDetailRow(
-                            task: task,
-                            isSelected: selectedTask?.id == task.id,
-                            onToggle: {
-                                task.status = .completed
-                                task.updatedAt = .now
-                                try? modelContext.save()
-                            },
-                            onSelect: { selectedTask = task }
-                        )
-                    }
-                }
-
-                // Completed tasks
-                if !completedTasks.isEmpty {
-                    Text("Completed")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundStyle(.tertiary)
-
-                    ForEach(completedTasks) { task in
-                        TaskDetailRow(
-                            task: task,
-                            isCompleted: true,
-                            isSelected: selectedTask?.id == task.id,
-                            onToggle: {
-                                task.status = .active
-                                task.updatedAt = .now
-                                try? modelContext.save()
-                            },
-                            onSelect: { selectedTask = task }
-                        )
-                    }
-                }
-
-                if project.tasks.isEmpty {
-                    ContentUnavailableView(
-                        "No tasks yet",
-                        systemImage: "checklist",
-                        description: Text("Add a task above to start tracking.")
-                    )
-                }
             }
             .padding(20)
+
+            Divider()
+
+            // Content: task list or empty state
+            if project.tasks.isEmpty {
+                ContentUnavailableView(
+                    "No tasks yet",
+                    systemImage: "checklist",
+                    description: Text("Add a task above to start tracking.")
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 20) {
+                        if !activeTasks.isEmpty {
+                            Text("Active tasks")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundStyle(.secondary)
+
+                            ForEach(activeTasks) { task in
+                                TaskDetailRow(
+                                    task: task,
+                                    isSelected: selectedTask?.id == task.id,
+                                    onToggle: {
+                                        task.status = .completed
+                                        task.updatedAt = .now
+                                        try? modelContext.save()
+                                    },
+                                    onSelect: { selectedTask = task }
+                                )
+                            }
+                        }
+
+                        if !completedTasks.isEmpty {
+                            Text("Completed")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundStyle(.tertiary)
+
+                            ForEach(completedTasks) { task in
+                                TaskDetailRow(
+                                    task: task,
+                                    isCompleted: true,
+                                    isSelected: selectedTask?.id == task.id,
+                                    onToggle: {
+                                        task.status = .active
+                                        task.updatedAt = .now
+                                        try? modelContext.save()
+                                    },
+                                    onSelect: { selectedTask = task }
+                                )
+                            }
+                        }
+                    }
+                    .padding(20)
+                }
+            }
         }
     }
 
@@ -148,15 +153,12 @@ struct ProjectDetailView: View {
             // Entries
             let entries = task.timeEntries.sorted { $0.startDate > $1.startDate }
             if entries.isEmpty {
-                VStack {
-                    Spacer()
-                    ContentUnavailableView(
-                        "No records",
-                        systemImage: "clock",
-                        description: Text("Start tracking this task to create records.")
-                    )
-                    Spacer()
-                }
+                ContentUnavailableView(
+                    "No records",
+                    systemImage: "clock",
+                    description: Text("Start tracking this task to create records.")
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView {
                     VStack(spacing: 6) {
