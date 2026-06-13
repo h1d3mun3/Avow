@@ -16,6 +16,7 @@ struct TaskTimeEntryPanel: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Close")
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)

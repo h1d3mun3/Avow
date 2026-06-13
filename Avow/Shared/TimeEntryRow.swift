@@ -49,6 +49,7 @@ struct TimeEntryRow: View {
             }
             .buttonStyle(.plain)
             .help("Edit times")
+            .accessibilityLabel("Edit time entry")
 
             Button(role: .destructive) {
                 do { try repositories.timeEntry.delete(entry) } catch { errorMessage = error.localizedDescription }
@@ -58,6 +59,7 @@ struct TimeEntryRow: View {
             }
             .buttonStyle(.plain)
             .help("Delete record")
+            .accessibilityLabel("Delete time entry")
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)

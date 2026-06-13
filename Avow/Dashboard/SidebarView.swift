@@ -125,6 +125,7 @@ struct SidebarView: View {
                 } label: {
                     Image(systemName: "plus")
                 }
+                .accessibilityLabel("New project")
             }
         }
         .safeAreaInset(edge: .bottom) {

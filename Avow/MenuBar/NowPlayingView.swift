@@ -34,6 +34,7 @@ struct NowPlayingView: View {
                 .font(.system(.body, design: .monospaced))
                 .fontWeight(.medium)
                 .foregroundStyle(Color.accentColor)
+                .accessibilityLabel("Elapsed time: \(entry.duration.timerFormatted)")
 
             Button {
                 appState.stopTracking(context: modelContext)
@@ -46,6 +47,8 @@ struct NowPlayingView: View {
                     .overlay(Circle().strokeBorder(.red.opacity(0.3), lineWidth: 1))
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("Stop tracking")
+            .accessibilityHint("Stops the current time entry")
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)

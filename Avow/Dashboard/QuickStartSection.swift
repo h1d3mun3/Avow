@@ -54,6 +54,7 @@ private struct QuickStartSearchField: View {
                         .foregroundStyle(.tertiary)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Clear search")
             }
         }
         .padding(.horizontal, 10)
@@ -121,5 +122,6 @@ private struct QuickStartRow: View {
             )
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(isActive ? "Stop tracking \(task.name)" : "Start tracking \(task.name)")
     }
 }
