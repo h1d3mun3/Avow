@@ -4,6 +4,7 @@ struct TaskListPanel: View {
     let viewModel: ProjectDetailViewModel
     @Binding var selectedTask: Task?
     @Binding var newTaskName: String
+    @State private var errorMessage: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -45,13 +46,13 @@ struct TaskListPanel: View {
                                 TaskDetailRow(
                                     task: task,
                                     isSelected: selectedTask?.id == task.id,
-                                    onToggle: { try? viewModel.toggleStatus(task) },
+                                    onToggle: { do { try viewModel.toggleStatus(task) } catch { errorMessage = error.localizedDescription } },
                                     onSelect: { selectedTask = task },
                                     onDelete: {
                                         if selectedTask?.id == task.id { selectedTask = nil }
-                                        try? viewModel.delete(task)
+                                        do { try viewModel.delete(task) } catch { errorMessage = error.localizedDescription }
                                     },
-                                    onRename: { try? viewModel.rename(task, to: $0) }
+                                    onRename: { do { try viewModel.rename(task, to: $0) } catch { errorMessage = error.localizedDescription } }
                                 )
                             }
                         }
@@ -67,13 +68,13 @@ struct TaskListPanel: View {
                                     task: task,
                                     isCompleted: true,
                                     isSelected: selectedTask?.id == task.id,
-                                    onToggle: { try? viewModel.toggleStatus(task) },
+                                    onToggle: { do { try viewModel.toggleStatus(task) } catch { errorMessage = error.localizedDescription } },
                                     onSelect: { selectedTask = task },
                                     onDelete: {
                                         if selectedTask?.id == task.id { selectedTask = nil }
-                                        try? viewModel.delete(task)
+                                        do { try viewModel.delete(task) } catch { errorMessage = error.localizedDescription }
                                     },
-                                    onRename: { try? viewModel.rename(task, to: $0) }
+                                    onRename: { do { try viewModel.rename(task, to: $0) } catch { errorMessage = error.localizedDescription } }
                                 )
                             }
                         }
@@ -82,12 +83,17 @@ struct TaskListPanel: View {
                 }
             }
         }
+        .alert("Error", isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
+            Button("OK") { errorMessage = nil }
+        } message: {
+            Text(errorMessage ?? "")
+        }
     }
 
     private func addTask() {
         let name = newTaskName.trimmingCharacters(in: .whitespaces)
         guard !name.isEmpty else { return }
-        try? viewModel.addTask(named: name)
+        do { try viewModel.addTask(named: name) } catch { errorMessage = error.localizedDescription }
         newTaskName = ""
     }
 }

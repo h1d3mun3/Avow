@@ -17,6 +17,7 @@ struct SidebarView: View {
     @FocusState private var renameFieldFocused: Bool
     @State private var showArchived = false
     @State private var projectToDelete: Project?
+    @State private var errorMessage: String?
 
     private var activeProjects: [Project] {
         projects.filter { !$0.isArchived }
@@ -68,7 +69,7 @@ struct SidebarView: View {
                             if case .project(let selected) = selection, selected.id == project.id {
                                 selection = .overview
                             }
-                            try? repositories.project.archive(project)
+                            do { try repositories.project.archive(project) } catch { errorMessage = error.localizedDescription }
                         }
                         Divider()
                         Button("Delete…", role: .destructive) {
@@ -99,7 +100,7 @@ struct SidebarView: View {
                             }
                             .contextMenu {
                                 Button("Unarchive") {
-                                    try? repositories.project.unarchive(project)
+                                    do { try repositories.project.unarchive(project) } catch { errorMessage = error.localizedDescription }
                                 }
                                 Divider()
                                 Button("Delete…", role: .destructive) {
@@ -156,25 +157,30 @@ struct SidebarView: View {
                     if case .project(let selected) = selection, selected.id == project.id {
                         selection = .overview
                     }
-                    try? repositories.project.delete(project)
+                    do { try repositories.project.delete(project) } catch { errorMessage = error.localizedDescription }
                 }
                 projectToDelete = nil
             }
         } message: {
             Text("All tasks and time records in this project will be permanently deleted.")
         }
+        .alert("Error", isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
+            Button("OK") { errorMessage = nil }
+        } message: {
+            Text(errorMessage ?? "")
+        }
     }
 
     private func moveProjects(from source: IndexSet, to destination: Int) {
         var reordered = activeProjects
         reordered.move(fromOffsets: source, toOffset: destination)
-        try? repositories.project.reorder(reordered)
+        do { try repositories.project.reorder(reordered) } catch { errorMessage = error.localizedDescription }
     }
 
     private func commitRename() {
         let trimmed = renameText.trimmingCharacters(in: .whitespaces)
         if !trimmed.isEmpty, let project = renamingProject {
-            try? repositories.project.rename(project, to: trimmed)
+            do { try repositories.project.rename(project, to: trimmed) } catch { errorMessage = error.localizedDescription }
         }
         renamingProject = nil
         renameText = ""
