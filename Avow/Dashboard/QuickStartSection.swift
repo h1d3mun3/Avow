@@ -4,7 +4,6 @@ import SwiftData
 struct QuickStartSection: View {
     @Bindable var viewModel: OverviewViewModel
     @Environment(AppState.self) private var appState
-    @Environment(\.modelContext) private var modelContext
 
     var body: some View {
         if !viewModel.allActiveTasks.isEmpty {
@@ -25,9 +24,9 @@ struct QuickStartSection: View {
                     let isActive = appState.activeEntry?.task?.id == task.id
                     QuickStartRow(task: task, isActive: isActive) {
                         if isActive {
-                            appState.stopTracking(context: modelContext)
+                            appState.stopTracking()
                         } else {
-                            appState.switchTask(to: task, context: modelContext)
+                            appState.switchTask(to: task)
                         }
                     }
                 }

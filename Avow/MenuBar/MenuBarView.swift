@@ -3,7 +3,6 @@ import SwiftData
 
 struct MenuBarView: View {
     @Environment(AppState.self) private var appState
-    @Environment(\.modelContext) private var modelContext
     @Environment(\.openWindow) private var openWindow
 
     @Query(sort: \Task.name)
@@ -46,7 +45,7 @@ struct MenuBarView: View {
             viewModel.update(tasks: new)
         }
         .onAppear {
-            appState.restoreActiveEntry(context: modelContext)
+            appState.restoreActiveEntry()
         }
     }
 
@@ -119,7 +118,6 @@ private struct ProjectSection: View {
     let activeEntry: TimeEntry?
 
     @Environment(AppState.self) private var appState
-    @Environment(\.modelContext) private var modelContext
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -138,9 +136,9 @@ private struct ProjectSection: View {
                     isActive: activeEntry?.task?.id == task.id
                 ) {
                     if activeEntry?.task?.id == task.id {
-                        appState.stopTracking(context: modelContext)
+                        appState.stopTracking()
                     } else {
-                        appState.switchTask(to: task, context: modelContext)
+                        appState.switchTask(to: task)
                     }
                 }
             }

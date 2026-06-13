@@ -31,29 +31,32 @@ struct AvowApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     let modelContainer: ModelContainer
     let repositories: Repositories
-    @State private var appState = AppState()
+    @State private var appState: AppState
 
     init() {
+        let schema = Schema([
+            Project.self,
+            Task.self,
+            TimeEntry.self,
+        ])
+        let config = ModelConfiguration(
+            "Avow",
+            schema: schema,
+            isStoredInMemoryOnly: false
+        )
+        let container: ModelContainer
         do {
-            let schema = Schema([
-                Project.self,
-                Task.self,
-                TimeEntry.self,
-            ])
-            let config = ModelConfiguration(
-                "Avow",
-                schema: schema,
-                isStoredInMemoryOnly: false
-            )
-            let container = try ModelContainer(
+            container = try ModelContainer(
                 for: schema,
                 configurations: [config]
             )
-            modelContainer = container
-            repositories = Repositories(context: container.mainContext)
         } catch {
             fatalError("Failed to initialize ModelContainer: \(error)")
         }
+        modelContainer = container
+        let repos = Repositories(context: container.mainContext)
+        repositories = repos
+        _appState = State(initialValue: AppState(timeEntries: repos.timeEntry))
     }
 
     var body: some Scene {
@@ -67,7 +70,7 @@ struct AvowApp: App {
         } label: {
             MenuBarLabel(appState: appState)
                 .task {
-                    appState.restoreActiveEntry(context: modelContainer.mainContext)
+                    appState.restoreActiveEntry()
                 }
                 .background(DashboardWindowOpener(appDelegate: appDelegate))
         }

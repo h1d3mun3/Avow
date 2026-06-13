@@ -25,29 +25,43 @@ final class ManualClock: AppClock {
     }
 }
 
+// MARK: - Fake repository
+
+final class FakeTimeEntryRepository: TimeEntryRepository {
+    private(set) var startedTasks: [Task] = []
+    private(set) var stoppedEntries: [TimeEntry] = []
+    var running: TimeEntry?
+
+    func start(task: Task) throws -> TimeEntry {
+        let e = TimeEntry(task: task)
+        startedTasks.append(task)
+        return e
+    }
+
+    func stop(_ entry: TimeEntry) throws {
+        entry.stop()
+        stoppedEntries.append(entry)
+    }
+
+    func fetchRunning() throws -> TimeEntry? { running }
+
+    func update(_ entry: TimeEntry, start: Date, end: Date?) throws {}
+
+    func delete(_ entry: TimeEntry) throws {}
+}
+
 // MARK: - Tests
 
 @Suite("AppState")
 struct AppStateTests {
 
-    private func makeContext() throws -> ModelContext {
-        let schema = Schema([Project.self, Task.self, TimeEntry.self])
-        let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
-        return ModelContext(container)
-    }
-
     @Test func tick_incrementsOnClockAdvance() throws {
-        let context = try makeContext()
         let clock = ManualClock()
-        let appState = AppState(clock: clock)
+        let appState = AppState(clock: clock, timeEntries: FakeTimeEntryRepository())
 
-        let project = Project(name: "P")
-        context.insert(project)
-        let task = Task(name: "T", project: project)
-        context.insert(task)
+        let task = Task(name: "T", project: Project(name: "P"))
 
-        appState.startTracking(task: task, context: context)
+        appState.startTracking(task: task)
         let before = appState.tick
 
         clock.advance()
@@ -57,49 +71,37 @@ struct AppStateTests {
     }
 
     @Test func startTracking_setsActiveEntry() throws {
-        let context = try makeContext()
-        let appState = AppState(clock: ManualClock())
+        let appState = AppState(clock: ManualClock(), timeEntries: FakeTimeEntryRepository())
 
-        let project = Project(name: "P")
-        context.insert(project)
-        let task = Task(name: "T", project: project)
-        context.insert(task)
+        let task = Task(name: "T", project: Project(name: "P"))
 
-        appState.startTracking(task: task, context: context)
+        appState.startTracking(task: task)
 
         #expect(appState.activeEntry != nil)
         #expect(appState.isTracking == true)
     }
 
     @Test func stopTracking_clearsActiveEntry() throws {
-        let context = try makeContext()
         let clock = ManualClock()
-        let appState = AppState(clock: clock)
+        let appState = AppState(clock: clock, timeEntries: FakeTimeEntryRepository())
 
-        let project = Project(name: "P")
-        context.insert(project)
-        let task = Task(name: "T", project: project)
-        context.insert(task)
+        let task = Task(name: "T", project: Project(name: "P"))
 
-        appState.startTracking(task: task, context: context)
-        appState.stopTracking(context: context)
+        appState.startTracking(task: task)
+        appState.stopTracking()
 
         #expect(appState.activeEntry == nil)
         #expect(appState.isTracking == false)
     }
 
     @Test func stopTracking_cancelsTimer() throws {
-        let context = try makeContext()
         let clock = ManualClock()
-        let appState = AppState(clock: clock)
+        let appState = AppState(clock: clock, timeEntries: FakeTimeEntryRepository())
 
-        let project = Project(name: "P")
-        context.insert(project)
-        let task = Task(name: "T", project: project)
-        context.insert(task)
+        let task = Task(name: "T", project: Project(name: "P"))
 
-        appState.startTracking(task: task, context: context)
-        appState.stopTracking(context: context)
+        appState.startTracking(task: task)
+        appState.stopTracking()
 
         let tickBefore = appState.tick
         clock.advance()
@@ -108,19 +110,16 @@ struct AppStateTests {
     }
 
     @Test func switchTask_stopsCurrentAndStartsNew() throws {
-        let context = try makeContext()
-        let appState = AppState(clock: ManualClock())
+        let appState = AppState(clock: ManualClock(), timeEntries: FakeTimeEntryRepository())
 
         let project = Project(name: "P")
-        context.insert(project)
         let t1 = Task(name: "T1", project: project)
         let t2 = Task(name: "T2", project: project)
-        [t1, t2].forEach { context.insert($0) }
 
-        appState.startTracking(task: t1, context: context)
+        appState.startTracking(task: t1)
         let firstEntry = appState.activeEntry
 
-        appState.switchTask(to: t2, context: context)
+        appState.switchTask(to: t2)
 
         #expect(firstEntry?.endDate != nil)
         #expect(appState.activeEntry?.task?.id == t2.id)
@@ -129,21 +128,12 @@ struct AppStateTests {
     // MARK: - restoreActiveEntry
 
     @Test func restoreActiveEntry_noOpenEntry_leavesNil() throws {
-        let context = try makeContext()
         let clock = ManualClock()
-        let appState = AppState(clock: clock)
+        let fake = FakeTimeEntryRepository()
+        fake.running = nil
+        let appState = AppState(clock: clock, timeEntries: fake)
 
-        let project = Project(name: "P")
-        context.insert(project)
-        let task = Task(name: "T", project: project)
-        context.insert(task)
-        // A finished entry only: nothing is running.
-        let entry = TimeEntry(startDate: .now, task: task)
-        entry.endDate = .now
-        context.insert(entry)
-        try context.save()
-
-        appState.restoreActiveEntry(context: context)
+        appState.restoreActiveEntry()
 
         #expect(appState.activeEntry == nil)
 
@@ -154,20 +144,14 @@ struct AppStateTests {
     }
 
     @Test func restoreActiveEntry_withRunningEntry_adoptsItAndTicks() throws {
-        let context = try makeContext()
         let clock = ManualClock()
-        let appState = AppState(clock: clock)
+        let fake = FakeTimeEntryRepository()
+        let task = Task(name: "T", project: Project(name: "P"))
+        let running = TimeEntry(task: task)
+        fake.running = running
+        let appState = AppState(clock: clock, timeEntries: fake)
 
-        let project = Project(name: "P")
-        context.insert(project)
-        let task = Task(name: "T", project: project)
-        context.insert(task)
-        // A running entry has no end date.
-        let running = TimeEntry(startDate: .now, task: task)
-        context.insert(running)
-        try context.save()
-
-        appState.restoreActiveEntry(context: context)
+        appState.restoreActiveEntry()
 
         #expect(appState.activeEntry != nil)
         #expect(appState.activeEntry?.id == running.id)

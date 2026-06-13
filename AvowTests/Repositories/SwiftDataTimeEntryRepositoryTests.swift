@@ -28,6 +28,58 @@ struct SwiftDataTimeEntryRepositoryTests {
         return entry
     }
 
+    /// Inserts a Project -> Task chain and returns the task.
+    private func makeTask(in context: ModelContext) -> Task {
+        let project = Project(name: "P")
+        context.insert(project)
+        let task = Task(name: "T", project: project)
+        context.insert(task)
+        return task
+    }
+
+    @Test func start_insertsRunningEntry() throws {
+        let (repo, context) = try makeRepository()
+        let task = makeTask(in: context)
+
+        let entry = try repo.start(task: task)
+
+        #expect(entry.endDate == nil)
+
+        let persisted = try context.fetch(FetchDescriptor<TimeEntry>())
+        #expect(persisted.contains { $0.id == entry.id })
+    }
+
+    @Test func stop_setsEndDate() throws {
+        let (repo, context) = try makeRepository()
+        let task = makeTask(in: context)
+        let entry = try repo.start(task: task)
+
+        try repo.stop(entry)
+
+        #expect(entry.endDate != nil)
+    }
+
+    @Test func fetchRunning_returnsTheRunningEntry() throws {
+        let (repo, context) = try makeRepository()
+        let task = makeTask(in: context)
+        let entry = try repo.start(task: task)
+
+        let running = try repo.fetchRunning()
+
+        #expect(running?.id == entry.id)
+    }
+
+    @Test func fetchRunning_nilWhenNoneRunning() throws {
+        let (repo, context) = try makeRepository()
+        let task = makeTask(in: context)
+        let entry = try repo.start(task: task)
+        try repo.stop(entry)
+
+        let running = try repo.fetchRunning()
+
+        #expect(running == nil)
+    }
+
     @Test func update_changesStartDate() throws {
         let (repo, context) = try makeRepository()
         let entry = makeEntry(in: context, startDate: Date(timeIntervalSinceReferenceDate: 0))
