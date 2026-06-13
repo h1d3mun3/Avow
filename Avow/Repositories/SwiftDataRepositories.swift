@@ -77,6 +77,22 @@ struct SwiftDataTaskRepository: TaskRepository {
 struct SwiftDataTimeEntryRepository: TimeEntryRepository {
     let context: ModelContext
 
+    func start(task: Task) throws -> TimeEntry {
+        let entry = TimeEntry(task: task)
+        context.insert(entry)
+        try context.save()
+        return entry
+    }
+
+    func stop(_ entry: TimeEntry) throws {
+        entry.stop()
+        try context.save()
+    }
+
+    func fetchRunning() throws -> TimeEntry? {
+        try context.fetch(FetchDescriptor<TimeEntry>(predicate: #Predicate { $0.endDate == nil })).first
+    }
+
     func update(_ entry: TimeEntry, start: Date, end: Date?) throws {
         entry.startDate = start
         // Only a stopped entry can have its end edited; a running entry stays running.

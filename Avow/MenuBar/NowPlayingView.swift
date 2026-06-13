@@ -5,7 +5,6 @@ struct NowPlayingView: View {
     let entry: TimeEntry
 
     @Environment(AppState.self) private var appState
-    @Environment(\.modelContext) private var modelContext
 
     var body: some View {
         HStack {
@@ -37,7 +36,7 @@ struct NowPlayingView: View {
                 .accessibilityLabel("Elapsed time: \(entry.duration.timerFormatted)")
 
             Button {
-                appState.stopTracking(context: modelContext)
+                appState.stopTracking()
             } label: {
                 Image(systemName: "stop.fill")
                     .font(.caption)

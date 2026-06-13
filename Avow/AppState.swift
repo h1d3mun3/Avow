@@ -10,47 +10,43 @@ final class AppState {
     var tick: UInt64 = 0
 
     private let clock: any AppClock
+    private let timeEntries: any TimeEntryRepository
     private var clockToken: ClockToken?
 
     var isTracking: Bool {
         activeEntry != nil
     }
 
-    init(clock: any AppClock = SystemClock()) {
+    init(clock: any AppClock = SystemClock(), timeEntries: any TimeEntryRepository) {
         self.clock = clock
+        self.timeEntries = timeEntries
     }
 
     // MARK: - Timer control
 
     /// Start tracking a task. Stops any currently running entry first.
-    func startTracking(task: Task, context: ModelContext) {
+    func startTracking(task: Task) {
         if let current = activeEntry {
-            current.stop()
+            try? timeEntries.stop(current)
         }
 
-        let entry = TimeEntry(task: task)
-        context.insert(entry)
-        activeEntry = entry
+        activeEntry = try? timeEntries.start(task: task)
 
         startDisplayTimer()
-
-        try? context.save()
     }
 
     /// Stop the currently running entry.
-    func stopTracking(context: ModelContext) {
+    func stopTracking() {
         guard let entry = activeEntry else { return }
-        entry.stop()
+        try? timeEntries.stop(entry)
         activeEntry = nil
 
         stopDisplayTimer()
-
-        try? context.save()
     }
 
     /// Switch to a different task (stop current, start new).
-    func switchTask(to task: Task, context: ModelContext) {
-        startTracking(task: task, context: context)
+    func switchTask(to task: Task) {
+        startTracking(task: task)
     }
 
     // MARK: - Display timer
@@ -71,12 +67,8 @@ final class AppState {
 
     /// Called once at launch to check if there's an unfinished entry
     /// (e.g. app crashed while tracking).
-    func restoreActiveEntry(context: ModelContext) {
-        let descriptor = FetchDescriptor<TimeEntry>(
-            predicate: #Predicate<TimeEntry> { $0.endDate == nil }
-        )
-
-        if let running = try? context.fetch(descriptor).first {
+    func restoreActiveEntry() {
+        if let running = try? timeEntries.fetchRunning() {
             activeEntry = running
             startDisplayTimer()
         }
