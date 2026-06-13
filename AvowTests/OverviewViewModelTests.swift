@@ -179,4 +179,51 @@ struct OverviewViewModelTests {
 
         #expect(vm.quickStartTasks.map(\.name) == ["Alpha work", "Beta work"])
     }
+
+    @Test func quickStartTasks_emptyFilter_ordersByMostRecentEntryDescending() throws {
+        let context = try makeContext()
+        let project = Project(name: "P")
+        context.insert(project)
+
+        // Distinct latest-entry dates: "Newest" most recent, "Oldest" least.
+        let newest = Task(name: "Newest", project: project)
+        let middle = Task(name: "Middle", project: project)
+        let oldest = Task(name: "Oldest", project: project)
+        [newest, middle, oldest].forEach { context.insert($0) }
+
+        func addEntry(to task: Task, ref: Double) {
+            let entry = TimeEntry(startDate: Date(timeIntervalSinceReferenceDate: ref), task: task)
+            entry.endDate = Date(timeIntervalSinceReferenceDate: ref + 60)
+            context.insert(entry)
+        }
+        addEntry(to: oldest, ref: 1000)
+        addEntry(to: middle, ref: 5000)
+        addEntry(to: newest, ref: 9000)
+
+        let vm = OverviewViewModel()
+        vm.update(projects: [project])
+
+        #expect(vm.quickStartTasks.map(\.name) == ["Newest", "Middle", "Oldest"])
+    }
+
+    @Test func quickStartTasks_neverTrackedTask_sortsLast() throws {
+        let context = try makeContext()
+        let project = Project(name: "P")
+        context.insert(project)
+
+        let tracked = Task(name: "Tracked", project: project)
+        let neverTracked = Task(name: "NeverTracked", project: project)
+        [tracked, neverTracked].forEach { context.insert($0) }
+
+        let entry = TimeEntry(startDate: Date(timeIntervalSinceReferenceDate: 1000), task: tracked)
+        entry.endDate = Date(timeIntervalSinceReferenceDate: 1060)
+        context.insert(entry)
+
+        let vm = OverviewViewModel()
+        vm.update(projects: [project])
+
+        // The never-tracked task (distantPast) must sort after the tracked one.
+        let names = vm.quickStartTasks.map(\.name)
+        #expect(names == ["Tracked", "NeverTracked"])
+    }
 }

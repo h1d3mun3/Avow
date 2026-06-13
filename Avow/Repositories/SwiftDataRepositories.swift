@@ -67,6 +67,7 @@ struct SwiftDataTimeEntryRepository: TimeEntryRepository {
 
     func update(_ entry: TimeEntry, start: Date, end: Date?) throws {
         entry.startDate = start
+        // Only a stopped entry can have its end edited; a running entry stays running.
         if entry.endDate != nil {
             entry.endDate = end
         }
