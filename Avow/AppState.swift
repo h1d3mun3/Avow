@@ -6,14 +6,18 @@ final class AppState {
     /// The currently running time entry, if any.
     var activeEntry: TimeEntry?
 
-    /// Timer that fires every second to update elapsed time display.
-    private var displayTimer: Timer?
-
     /// Incremented every second while tracking, to trigger SwiftUI updates.
     var tick: UInt64 = 0
 
+    private let clock: any AppClock
+    private var clockToken: ClockToken?
+
     var isTracking: Bool {
         activeEntry != nil
+    }
+
+    init(clock: any AppClock = SystemClock()) {
+        self.clock = clock
     }
 
     // MARK: - Timer control
@@ -53,16 +57,14 @@ final class AppState {
 
     private func startDisplayTimer() {
         stopDisplayTimer()
-        let timer = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
+        clockToken = clock.scheduleRepeating(interval: 1.0) { [weak self] in
             self?.tick += 1
         }
-        RunLoop.main.add(timer, forMode: .common)
-        displayTimer = timer
     }
 
     private func stopDisplayTimer() {
-        displayTimer?.invalidate()
-        displayTimer = nil
+        clockToken?.cancel()
+        clockToken = nil
     }
 
     // MARK: - Restore state on launch
