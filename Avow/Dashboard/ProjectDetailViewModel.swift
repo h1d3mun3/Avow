@@ -5,10 +5,12 @@ import SwiftData
 final class ProjectDetailViewModel {
     private let project: Project
     private let taskRepository: any TaskRepository
+    private let clock: any AppClock
 
-    init(project: Project, taskRepository: any TaskRepository) {
+    init(project: Project, taskRepository: any TaskRepository, clock: any AppClock = SystemClock()) {
         self.project = project
         self.taskRepository = taskRepository
+        self.clock = clock
     }
 
     // MARK: - Derived state
@@ -34,7 +36,7 @@ final class ProjectDetailViewModel {
     }
 
     var thisWeekDuration: TimeInterval {
-        let startOfWeek = Calendar.current.dateInterval(of: .weekOfYear, for: .now)?.start ?? .now
+        let startOfWeek = Calendar.current.dateInterval(of: .weekOfYear, for: clock.now())?.start ?? clock.now()
         return project.allTimeEntries
             .filter { $0.startDate >= startOfWeek }
             .totalDuration

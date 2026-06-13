@@ -7,6 +7,13 @@ import SwiftData
 
 final class ManualClock: AppClock {
     private(set) var scheduledAction: (() -> Void)?
+    var nowDate: Date
+
+    init(now: Date = .now) {
+        nowDate = now
+    }
+
+    func now() -> Date { nowDate }
 
     func scheduleRepeating(interval: TimeInterval, action: @escaping () -> Void) -> ClockToken {
         scheduledAction = action

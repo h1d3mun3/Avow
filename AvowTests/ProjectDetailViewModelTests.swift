@@ -102,6 +102,33 @@ struct ProjectDetailViewModelTests {
         #expect(vm.thisWeekDuration == 1800)
     }
 
+    @Test func thisWeekDuration_boundaryAtWeekStart_withInjectedClock() throws {
+        let context = try makeContext()
+        let project = Project(name: "P")
+        context.insert(project)
+        let task = Task(name: "T", project: project)
+        context.insert(task)
+
+        // Fixed "now": Thursday 2024-01-18 15:45 UTC.
+        let now = Date(timeIntervalSinceReferenceDate: 727285500)
+        let weekStart = Calendar.current.dateInterval(of: .weekOfYear, for: now)!.start
+
+        // Exactly at week start counts; one second before is excluded.
+        let atStart = TimeEntry(startDate: weekStart, task: task)
+        atStart.endDate = weekStart.addingTimeInterval(1800)
+        let justBefore = TimeEntry(startDate: weekStart.addingTimeInterval(-1), task: task)
+        justBefore.endDate = weekStart.addingTimeInterval(1800)
+        [atStart, justBefore].forEach { context.insert($0) }
+
+        let vm = ProjectDetailViewModel(
+            project: project,
+            taskRepository: MockTaskRepository(),
+            clock: ManualClock(now: now)
+        )
+
+        #expect(vm.thisWeekDuration == 1800)
+    }
+
     // MARK: - Mutations
 
     @Test func addTask_callsRepositoryWithName() throws {
