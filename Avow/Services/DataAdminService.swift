@@ -4,12 +4,22 @@ import SwiftData
 struct DataAdminService {
     let context: ModelContext
 
-    /// Deletes everything. Order is load-bearing: modelContext.delete(model:) ignores cascade rules,
-    /// so children must be removed before parents.
+    /// Deletes every time entry, task, and project.
+    ///
+    /// Deletes per-instance instead of `ModelContext.delete(model:)`: the batch variant is
+    /// backed by an NSBatchDeleteRequest, which in-memory stores don't support (so it fails
+    /// under tests). Children are removed before parents so cascade rules never act on
+    /// already-deleted rows.
     func deleteAllData() throws {
-        try context.delete(model: TimeEntry.self)
-        try context.delete(model: Task.self)
-        try context.delete(model: Project.self)
+        for entry in try context.fetch(FetchDescriptor<TimeEntry>()) {
+            context.delete(entry)
+        }
+        for task in try context.fetch(FetchDescriptor<Task>()) {
+            context.delete(task)
+        }
+        for project in try context.fetch(FetchDescriptor<Project>()) {
+            context.delete(project)
+        }
         try context.save()
     }
 }
