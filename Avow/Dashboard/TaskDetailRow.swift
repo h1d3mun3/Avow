@@ -25,6 +25,7 @@ struct TaskDetailRow: View {
                     .foregroundStyle(isCompleted ? .secondary : .primary)
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(isCompleted ? "Mark \(task.name) as active" : "Mark \(task.name) as completed")
 
             if isRenaming {
                 TextField("", text: $renameText)

@@ -26,6 +26,7 @@ struct TaskRowView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(isActive ? "Stop tracking \(task.name)" : "Start tracking \(task.name)")
         .background(isActive ? Color.accentColor.opacity(0.1) : .clear)
     }
 }
