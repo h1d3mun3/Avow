@@ -8,6 +8,8 @@ struct SidebarView: View {
     @Query(sort: \Project.sortOrder)
     private var projects: [Project]
 
+    @State private var viewModel: SidebarViewModel
+
     @Binding var selection: DashboardView.SidebarItem?
 
     @State private var showingNewProject = false
@@ -19,12 +21,9 @@ struct SidebarView: View {
     @State private var projectToDelete: Project?
     @State private var errorMessage: String?
 
-    private var activeProjects: [Project] {
-        projects.filter { !$0.isArchived }
-    }
-
-    private var archivedProjects: [Project] {
-        projects.filter { $0.isArchived }.sorted { $0.name < $1.name }
+    init(selection: Binding<DashboardView.SidebarItem?>, projectRepository: any ProjectRepository) {
+        _selection = selection
+        _viewModel = State(initialValue: SidebarViewModel(projectRepository: projectRepository))
     }
 
     var body: some View {
@@ -37,7 +36,7 @@ struct SidebarView: View {
             }
 
             Section("Projects") {
-                ForEach(activeProjects) { project in
+                ForEach(viewModel.activeProjects) { project in
                     NavigationLink(value: DashboardView.SidebarItem.project(project)) {
                         HStack(spacing: 8) {
                             if renamingProject?.id == project.id {
@@ -78,10 +77,10 @@ struct SidebarView: View {
                 .onMove(perform: moveProjects)
             }
 
-            if !archivedProjects.isEmpty {
+            if !viewModel.archivedProjects.isEmpty {
                 Section {
                     DisclosureGroup(isExpanded: $showArchived) {
-                        ForEach(archivedProjects) { project in
+                        ForEach(viewModel.archivedProjects) { project in
                             NavigationLink(value: DashboardView.SidebarItem.project(project)) {
                                 HStack(spacing: 8) {
                                     Text(project.name)
@@ -113,6 +112,9 @@ struct SidebarView: View {
             }
         }
         .listStyle(.sidebar)
+        .onChange(of: projects, initial: true) { _, new in
+            viewModel.update(projects: new)
+        }
         .frame(minWidth: 200)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -169,15 +171,12 @@ struct SidebarView: View {
     }
 
     private func moveProjects(from source: IndexSet, to destination: Int) {
-        var reordered = activeProjects
-        reordered.move(fromOffsets: source, toOffset: destination)
-        do { try repositories.project.reorder(reordered) } catch { errorMessage = error.localizedDescription }
+        do { try viewModel.move(from: source, to: destination) } catch { errorMessage = error.localizedDescription }
     }
 
     private func commitRename() {
-        let trimmed = renameText.trimmingCharacters(in: .whitespaces)
-        if !trimmed.isEmpty, let project = renamingProject {
-            do { try repositories.project.rename(project, to: trimmed) } catch { errorMessage = error.localizedDescription }
+        if let project = renamingProject {
+            do { try viewModel.commitRename(project, to: renameText) } catch { errorMessage = error.localizedDescription }
         }
         renamingProject = nil
         renameText = ""

@@ -13,7 +13,7 @@ struct DashboardView: View {
 
     var body: some View {
         NavigationSplitView {
-            SidebarView(selection: $selection)
+            SidebarView(selection: $selection, projectRepository: repositories.project)
         } detail: {
             switch selection {
             case .overview, .none:
