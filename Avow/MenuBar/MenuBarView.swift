@@ -180,7 +180,7 @@ private struct TodayTotalLabel: View {
     }
 
     var body: some View {
-        let total = todayEntries.reduce(0.0) { $0 + $1.duration }
+        let total = todayEntries.totalDuration
         Text("Today: \(total.timerFormatted)")
             .font(.caption)
             .foregroundStyle(.secondary)

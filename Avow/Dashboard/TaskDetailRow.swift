@@ -15,7 +15,7 @@ struct TaskDetailRow: View {
     @FocusState private var fieldFocused: Bool
 
     private var taskDuration: TimeInterval {
-        task.timeEntries.reduce(0.0) { $0 + $1.duration }
+        task.totalDuration
     }
 
     var body: some View {

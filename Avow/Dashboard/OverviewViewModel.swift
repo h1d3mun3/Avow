@@ -17,25 +17,25 @@ final class OverviewViewModel {
     }
 
     private var activeEntries: [TimeEntry] {
-        activeProjects.flatMap(\.tasks).flatMap(\.timeEntries)
+        activeProjects.flatMap(\.allTimeEntries)
     }
 
     var totalDuration: TimeInterval {
-        activeEntries.reduce(0.0) { $0 + $1.duration }
+        activeEntries.totalDuration
     }
 
     var thisWeekDuration: TimeInterval {
         let startOfWeek = Calendar.current.dateInterval(of: .weekOfYear, for: .now)?.start ?? .now
         return activeEntries
             .filter { $0.startDate >= startOfWeek }
-            .reduce(0.0) { $0 + $1.duration }
+            .totalDuration
     }
 
     var todayDuration: TimeInterval {
         let startOfDay = Calendar.current.startOfDay(for: .now)
         return activeEntries
             .filter { $0.startDate >= startOfDay }
-            .reduce(0.0) { $0 + $1.duration }
+            .totalDuration
     }
 
     var allActiveTasks: [Task] {

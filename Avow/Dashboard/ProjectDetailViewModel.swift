@@ -30,17 +30,14 @@ final class ProjectDetailViewModel {
     }
 
     var totalDuration: TimeInterval {
-        project.tasks
-            .flatMap(\.timeEntries)
-            .reduce(0.0) { $0 + $1.duration }
+        project.totalDuration
     }
 
     var thisWeekDuration: TimeInterval {
         let startOfWeek = Calendar.current.dateInterval(of: .weekOfYear, for: .now)?.start ?? .now
-        return project.tasks
-            .flatMap(\.timeEntries)
+        return project.allTimeEntries
             .filter { $0.startDate >= startOfWeek }
-            .reduce(0.0) { $0 + $1.duration }
+            .totalDuration
     }
 
     // MARK: - Mutations

@@ -51,7 +51,7 @@ private struct DayProjectBreakdown: View {
     }
 
     private var totalDuration: TimeInterval {
-        entries.reduce(0) { $0 + $1.duration }
+        entries.totalDuration
     }
 
     private var byProject: [(name: String, duration: TimeInterval)] {
