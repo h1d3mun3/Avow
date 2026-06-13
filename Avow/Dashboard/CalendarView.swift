@@ -48,30 +48,16 @@ private struct DayProjectBreakdown: View {
         })
     }
 
-    private var totalDuration: TimeInterval {
-        entries.totalDuration
-    }
-
-    private var byProject: [(name: String, duration: TimeInterval)] {
-        var groups: [String: TimeInterval] = [:]
-        for entry in entries {
-            let name = entry.task?.project?.name ?? "—"
-            groups[name, default: 0] += entry.duration
-        }
-        return groups.map { (name: $0.key, duration: $0.value) }
-            .sorted { $0.duration > $1.duration }
-    }
-
     var body: some View {
         if !entries.isEmpty {
+            let breakdown = DayBreakdown(entries: entries)
             VStack(alignment: .leading, spacing: 10) {
                 Text("By project")
                     .font(.caption)
                     .fontWeight(.medium)
                     .foregroundStyle(.secondary)
 
-                ForEach(byProject, id: \.name) { item in
-                    let fraction = totalDuration > 0 ? item.duration / totalDuration : 0
+                ForEach(breakdown.items, id: \.name) { item in
                     HStack(spacing: 6) {
                         Text(item.name)
                             .font(.caption)
@@ -84,7 +70,7 @@ private struct DayProjectBreakdown: View {
                                 .overlay(alignment: .leading) {
                                     RoundedRectangle(cornerRadius: 3)
                                         .fill(.secondary)
-                                        .frame(width: geo.size.width * fraction)
+                                        .frame(width: geo.size.width * item.fraction)
                                 }
                         }
                         .frame(width: 44, height: 5)

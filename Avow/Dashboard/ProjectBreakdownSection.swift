@@ -9,12 +9,9 @@ struct ProjectBreakdownSection: View {
             .fontWeight(.medium)
             .foregroundStyle(.secondary)
 
-        ForEach(viewModel.activeProjects) { project in
-            let duration = project.totalDuration
-            let fraction = viewModel.totalDuration > 0 ? duration / viewModel.totalDuration : 0
-
+        ForEach(viewModel.projectBreakdown, id: \.project.id) { item in
             HStack(spacing: 10) {
-                Text(project.name)
+                Text(item.project.name)
                     .font(.subheadline)
                 Spacer()
                 GeometryReader { geo in
@@ -24,16 +21,16 @@ struct ProjectBreakdownSection: View {
                         .overlay(alignment: .leading) {
                             RoundedRectangle(cornerRadius: 3)
                                 .fill(.secondary)
-                                .frame(width: geo.size.width * fraction)
+                                .frame(width: geo.size.width * item.fraction)
                         }
                 }
                 .frame(width: 100, height: 6)
-                Text(duration.shortFormatted)
+                Text(item.duration.shortFormatted)
                     .font(.caption)
                     .monospacedDigit()
                     .foregroundStyle(.secondary)
                     .frame(width: 50, alignment: .trailing)
-                Text(String(format: "%.0f%%", fraction * 100))
+                Text(String(format: "%.0f%%", item.fraction * 100))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
                     .frame(width: 36, alignment: .trailing)

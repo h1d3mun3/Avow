@@ -50,6 +50,11 @@ final class OverviewViewModel {
             .filter { $0.status == .active }
     }
 
+    var projectBreakdown: [(project: Project, duration: TimeInterval, fraction: Double)] {
+        let total = totalDuration
+        return activeProjects.map { (project: $0, duration: $0.totalDuration, fraction: total > 0 ? $0.totalDuration / total : 0) }
+    }
+
     var quickStartTasks: [Task] {
         quickStartFilter.isEmpty ? recentTasks : searchResults
     }
