@@ -13,21 +13,28 @@ struct OverviewView: View {
 
     @State private var quickStartFilter = ""
 
+    private var activeProjects: [Project] {
+        projects.filter { !$0.isArchived }
+    }
+
+    private var activeEntries: [TimeEntry] {
+        activeProjects.flatMap { $0.tasks }.flatMap { $0.timeEntries }
+    }
+
     private var totalDuration: TimeInterval {
-        allEntries.reduce(0.0) { $0 + $1.duration }
+        activeEntries.reduce(0.0) { $0 + $1.duration }
     }
 
     private var thisWeekDuration: TimeInterval {
-        let calendar = Calendar.current
-        let startOfWeek = calendar.dateInterval(of: .weekOfYear, for: .now)?.start ?? .now
-        return allEntries
+        let startOfWeek = Calendar.current.dateInterval(of: .weekOfYear, for: .now)?.start ?? .now
+        return activeEntries
             .filter { $0.startDate >= startOfWeek }
             .reduce(0.0) { $0 + $1.duration }
     }
 
     private var todayDuration: TimeInterval {
         let startOfDay = Calendar.current.startOfDay(for: .now)
-        return allEntries
+        return activeEntries
             .filter { $0.startDate >= startOfDay }
             .reduce(0.0) { $0 + $1.duration }
     }
@@ -64,7 +71,7 @@ struct OverviewView: View {
     }
 
     var body: some View {
-        if projects.isEmpty {
+        if activeProjects.isEmpty {
             ContentUnavailableView(
                 "No projects yet",
                 systemImage: "folder",
@@ -79,7 +86,7 @@ struct OverviewView: View {
                         SummaryCard(
                             label: "Total tracked",
                             value: totalDuration.shortFormatted,
-                            sub: "\(projects.count) projects"
+                            sub: "\(activeProjects.count) projects"
                         )
                         SummaryCard(
                             label: "This week",
@@ -127,7 +134,7 @@ struct OverviewView: View {
                         .fontWeight(.medium)
                         .foregroundStyle(.secondary)
 
-                    ForEach(projects) { project in
+                    ForEach(activeProjects) { project in
                         let duration = project.tasks
                             .flatMap(\.timeEntries)
                             .reduce(0.0) { $0 + $1.duration }
