@@ -27,23 +27,35 @@ final class ManualClock: AppClock {
 
 // MARK: - Fake repository
 
+private enum FakeRepositoryError: Error { case forced }
+
 final class FakeTimeEntryRepository: TimeEntryRepository {
     private(set) var startedTasks: [Task] = []
     private(set) var stoppedEntries: [TimeEntry] = []
     var running: TimeEntry?
 
+    // Inject errors to exercise AppState's silent-failure handling.
+    var startError: Error?
+    var stopError: Error?
+    var fetchError: Error?
+
     func start(task: Task) throws -> TimeEntry {
+        if let startError { throw startError }
         let e = TimeEntry(task: task)
         startedTasks.append(task)
         return e
     }
 
     func stop(_ entry: TimeEntry) throws {
+        if let stopError { throw stopError }
         entry.stop()
         stoppedEntries.append(entry)
     }
 
-    func fetchRunning() throws -> TimeEntry? { running }
+    func fetchRunning() throws -> TimeEntry? {
+        if let fetchError { throw fetchError }
+        return running
+    }
 
     func update(_ entry: TimeEntry, start: Date, end: Date?) throws {}
 
@@ -159,5 +171,46 @@ struct AppStateTests {
         let tickBefore = appState.tick
         clock.advance()
         #expect(appState.tick == tickBefore + 1)
+    }
+
+    // MARK: - Silent failure (repository errors are swallowed)
+
+    @Test func startTracking_whenStartThrows_leavesNoActiveEntry() throws {
+        let fake = FakeTimeEntryRepository()
+        fake.startError = FakeRepositoryError.forced
+        let appState = AppState(clock: ManualClock(), timeEntries: fake)
+
+        appState.startTracking(task: Task(name: "T", project: Project(name: "P")))
+
+        #expect(appState.activeEntry == nil)
+        #expect(appState.isTracking == false)
+    }
+
+    @Test func stopTracking_whenStopThrows_stillClearsActiveEntry() throws {
+        let fake = FakeTimeEntryRepository()
+        let appState = AppState(clock: ManualClock(), timeEntries: fake)
+        appState.startTracking(task: Task(name: "T", project: Project(name: "P")))
+        #expect(appState.activeEntry != nil)
+
+        fake.stopError = FakeRepositoryError.forced
+        appState.stopTracking()
+
+        // A stop failure must not strand the UI in a "tracking" state.
+        #expect(appState.activeEntry == nil)
+        #expect(appState.isTracking == false)
+    }
+
+    @Test func restoreActiveEntry_whenFetchThrows_leavesNil() throws {
+        let clock = ManualClock()
+        let fake = FakeTimeEntryRepository()
+        fake.fetchError = FakeRepositoryError.forced
+        let appState = AppState(clock: clock, timeEntries: fake)
+
+        appState.restoreActiveEntry()
+
+        #expect(appState.activeEntry == nil)
+        let tickBefore = appState.tick
+        clock.advance()
+        #expect(appState.tick == tickBefore)
     }
 }
