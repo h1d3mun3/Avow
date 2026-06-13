@@ -96,11 +96,7 @@ struct SettingsView: View {
         } message: {
             Text("This will permanently delete all projects, tasks, and time entries. This action cannot be undone.")
         }
-        .alert("Error", isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
-            Button("OK") { errorMessage = nil }
-        } message: {
-            Text(errorMessage ?? "")
-        }
+        .errorAlert($errorMessage)
     }
 
     // MARK: - Actions

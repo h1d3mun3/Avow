@@ -59,11 +59,7 @@ struct NewProjectSheet: View {
             .padding()
         }
         .frame(width: 320, height: 180)
-        .alert("Error", isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
-            Button("OK") { errorMessage = nil }
-        } message: {
-            Text(errorMessage ?? "")
-        }
+        .errorAlert($errorMessage)
     }
 
     private func createProject() {

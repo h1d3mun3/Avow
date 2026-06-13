@@ -83,11 +83,7 @@ struct TaskListPanel: View {
                 }
             }
         }
-        .alert("Error", isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
-            Button("OK") { errorMessage = nil }
-        } message: {
-            Text(errorMessage ?? "")
-        }
+        .errorAlert($errorMessage)
     }
 
     private func addTask() {
