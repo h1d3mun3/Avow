@@ -7,10 +7,7 @@ import SwiftData
 struct SwiftDataTaskRepositoryTests {
 
     private func makeRepository() throws -> (SwiftDataTaskRepository, ModelContext) {
-        let schema = Schema([Project.self, Task.self, TimeEntry.self])
-        let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
-        let context = ModelContext(container)
+        let context = try makeInMemoryContext()
         return (SwiftDataTaskRepository(context: context), context)
     }
 

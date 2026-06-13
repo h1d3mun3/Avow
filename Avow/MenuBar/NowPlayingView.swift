@@ -28,8 +28,7 @@ struct NowPlayingView: View {
 
             Spacer()
 
-            let _ = appState.tick
-            Text(entry.duration.timerFormatted)
+            Text(appState.liveDuration(of: entry).timerFormatted)
                 .font(.system(.body, design: .monospaced))
                 .fontWeight(.medium)
                 .foregroundStyle(Color.accentColor)

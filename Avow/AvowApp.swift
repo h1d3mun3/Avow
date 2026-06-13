@@ -114,8 +114,7 @@ struct MenuBarLabel: View {
     var body: some View {
         HStack(spacing: 4) {
             if let entry = appState.activeEntry {
-                let _ = appState.tick
-                Text(entry.duration.timerFormatted)
+                Text(appState.liveDuration(of: entry).timerFormatted)
                     .fontDesign(.monospaced)
             }
             Image(systemName: appState.isTracking ? "clock.fill" : "clock")

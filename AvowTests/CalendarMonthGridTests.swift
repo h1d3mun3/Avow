@@ -17,13 +17,6 @@ struct CalendarMonthGridTests {
         calendar.date(from: DateComponents(year: year, month: month, day: day))!
     }
 
-    private func makeContext() throws -> ModelContext {
-        let schema = Schema([Project.self, Task.self, TimeEntry.self])
-        let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
-        return ModelContext(container)
-    }
-
     // MARK: - monthDays grid length
 
     @Test(arguments: [
@@ -122,7 +115,7 @@ struct CalendarMonthGridTests {
 
     @Test func entriesByDay_collapsesEntriesToStartOfDay() throws {
         let cal = makeCalendar(firstWeekday: 1)
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let project = Project(name: "P")
         context.insert(project)
         let task = Task(name: "T", project: project)

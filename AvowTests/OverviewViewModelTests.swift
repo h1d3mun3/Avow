@@ -6,17 +6,10 @@ import SwiftData
 @Suite("OverviewViewModel")
 struct OverviewViewModelTests {
 
-    private func makeContext() throws -> ModelContext {
-        let schema = Schema([Project.self, Task.self, TimeEntry.self])
-        let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
-        return ModelContext(container)
-    }
-
     // MARK: - activeProjects
 
     @Test func activeProjects_excludesArchived() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let active = Project(name: "Active")
         let archived = Project(name: "Archived")
         archived.isArchived = true
@@ -32,7 +25,7 @@ struct OverviewViewModelTests {
     // MARK: - Duration aggregations
 
     @Test func totalDuration_sumsAllActiveProjectEntries() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let project = Project(name: "P")
         context.insert(project)
         let task = Task(name: "T", project: project)
@@ -50,7 +43,7 @@ struct OverviewViewModelTests {
     }
 
     @Test func totalDuration_excludesArchivedProjects() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let active = Project(name: "Active")
         let archived = Project(name: "Archived")
         archived.isArchived = true
@@ -73,7 +66,7 @@ struct OverviewViewModelTests {
     }
 
     @Test func thisWeekDuration_excludesOldEntries() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let project = Project(name: "P")
         context.insert(project)
         let task = Task(name: "T", project: project)
@@ -96,7 +89,7 @@ struct OverviewViewModelTests {
     }
 
     @Test func todayDuration_excludesYesterdayEntries() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let project = Project(name: "P")
         context.insert(project)
         let task = Task(name: "T", project: project)
@@ -121,7 +114,7 @@ struct OverviewViewModelTests {
     // MARK: - Deterministic duration boundaries (injected clock)
 
     @Test func thisWeekDuration_entryExactlyAtWeekStart_counts() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let project = Project(name: "P")
         context.insert(project)
         let task = Task(name: "T", project: project)
@@ -142,7 +135,7 @@ struct OverviewViewModelTests {
     }
 
     @Test func thisWeekDuration_entryASecondBeforeWeekStart_excluded() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let project = Project(name: "P")
         context.insert(project)
         let task = Task(name: "T", project: project)
@@ -163,7 +156,7 @@ struct OverviewViewModelTests {
     }
 
     @Test func todayDuration_entryExactlyAtMidnight_counts_oneSecondBeforeExcluded() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let project = Project(name: "P")
         context.insert(project)
         let task = Task(name: "T", project: project)
@@ -187,7 +180,7 @@ struct OverviewViewModelTests {
     // MARK: - allActiveTasks
 
     @Test func allActiveTasks_excludesCompletedAndArchivedProjects() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let active = Project(name: "Active")
         let archived = Project(name: "Archived")
         archived.isArchived = true
@@ -209,7 +202,7 @@ struct OverviewViewModelTests {
     // MARK: - quickStartTasks
 
     @Test func quickStartTasks_emptyFilter_returnsUpToFiveRecentTasks() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let project = Project(name: "P")
         context.insert(project)
 
@@ -231,7 +224,7 @@ struct OverviewViewModelTests {
     }
 
     @Test func quickStartTasks_withFilter_returnsMatchingTasksSortedByName() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let project = Project(name: "P")
         context.insert(project)
         let t1 = Task(name: "Alpha work", project: project)
@@ -247,7 +240,7 @@ struct OverviewViewModelTests {
     }
 
     @Test func quickStartTasks_emptyFilter_ordersByMostRecentEntryDescending() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let project = Project(name: "P")
         context.insert(project)
 
@@ -273,7 +266,7 @@ struct OverviewViewModelTests {
     }
 
     @Test func quickStartTasks_neverTrackedTask_sortsLast() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let project = Project(name: "P")
         context.insert(project)
 
@@ -296,7 +289,7 @@ struct OverviewViewModelTests {
     // MARK: - projectBreakdown
 
     @Test func projectBreakdown_noEntries_fractionIsZero() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let project = Project(name: "P")
         context.insert(project)
 
@@ -309,7 +302,7 @@ struct OverviewViewModelTests {
     }
 
     @Test func projectBreakdown_fractionsReflectPerProjectShare() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let alpha = Project(name: "Alpha")
         let beta = Project(name: "Beta")
         [alpha, beta].forEach { context.insert($0) }

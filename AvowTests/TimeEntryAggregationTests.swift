@@ -6,13 +6,6 @@ import SwiftData
 @Suite("TimeEntry+Aggregation")
 struct TimeEntryAggregationTests {
 
-    private func makeContext() throws -> ModelContext {
-        let schema = Schema([Project.self, Task.self, TimeEntry.self])
-        let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
-        return ModelContext(container)
-    }
-
     private func finishedEntry(
         start: TimeInterval,
         end: TimeInterval,
@@ -33,7 +26,7 @@ struct TimeEntryAggregationTests {
     }
 
     @Test func sequenceTotalDuration_singleEntry() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let project = Project(name: "P")
         context.insert(project)
         let task = Task(name: "T", project: project)
@@ -44,7 +37,7 @@ struct TimeEntryAggregationTests {
     }
 
     @Test func sequenceTotalDuration_multipleEntriesSum() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let project = Project(name: "P")
         context.insert(project)
         let task = Task(name: "T", project: project)
@@ -56,7 +49,7 @@ struct TimeEntryAggregationTests {
     }
 
     @Test func sequenceTotalDuration_isOrderIndependent() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let project = Project(name: "P")
         context.insert(project)
         let task = Task(name: "T", project: project)
@@ -70,7 +63,7 @@ struct TimeEntryAggregationTests {
     // MARK: - Project.totalDuration
 
     @Test func projectTotalDuration_sumsAcrossTasks() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let project = Project(name: "P")
         context.insert(project)
         let taskA = Task(name: "A", project: project)
@@ -85,7 +78,7 @@ struct TimeEntryAggregationTests {
     // MARK: - Task.totalDuration
 
     @Test func taskTotalDuration_sumsTaskEntries() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let project = Project(name: "P")
         context.insert(project)
         let task = Task(name: "T", project: project)
