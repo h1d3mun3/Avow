@@ -8,6 +8,7 @@ struct TimeEntryRow: View {
     @State private var isEditing = false
     @State private var editStart: Date = .now
     @State private var editEnd: Date = .now
+    @State private var errorMessage: String?
 
     var body: some View {
         HStack(spacing: 12) {
@@ -50,7 +51,7 @@ struct TimeEntryRow: View {
             .help("Edit times")
 
             Button(role: .destructive) {
-                try? repositories.timeEntry.delete(entry)
+                do { try repositories.timeEntry.delete(entry) } catch { errorMessage = error.localizedDescription }
             } label: {
                 Image(systemName: "trash")
                     .foregroundStyle(.red)
@@ -61,6 +62,11 @@ struct TimeEntryRow: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 8))
+        .alert("Error", isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
+            Button("OK") { errorMessage = nil }
+        } message: {
+            Text(errorMessage ?? "")
+        }
         .popover(isPresented: $isEditing) {
             VStack(alignment: .leading, spacing: 16) {
                 Text("Edit Record")
@@ -73,7 +79,7 @@ struct TimeEntryRow: View {
                     Button("Cancel") { isEditing = false }
                     Spacer()
                     Button("Save") {
-                        try? repositories.timeEntry.update(entry, start: editStart, end: editEnd)
+                        do { try repositories.timeEntry.update(entry, start: editStart, end: editEnd) } catch { errorMessage = error.localizedDescription }
                         isEditing = false
                     }
                     .buttonStyle(.borderedProminent)

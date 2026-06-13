@@ -2,7 +2,7 @@ import SwiftUI
 import SwiftData
 
 struct QuickStartSection: View {
-    let viewModel: OverviewViewModel
+    @Bindable var viewModel: OverviewViewModel
     @Environment(AppState.self) private var appState
     @Environment(\.modelContext) private var modelContext
 
