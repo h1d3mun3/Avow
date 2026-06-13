@@ -115,40 +115,8 @@ struct SettingsView: View {
 
     private func exportJSON() {
         let descriptor = FetchDescriptor<Project>(sortBy: [SortDescriptor(\Project.name)])
-        guard let projects = try? modelContext.fetch(descriptor) else { return }
-
-        let schema = ExportSchema(
-            version: ExportSchema.version,
-            exportedAt: .now,
-            projects: projects.map { project in
-                ExportSchema.ExportProject(
-                    id: project.id,
-                    name: project.name,
-                    createdAt: project.createdAt,
-                    tasks: project.tasks.map { task in
-                        ExportSchema.ExportTask(
-                            id: task.id,
-                            name: task.name,
-                            status: task.status.rawValue,
-                            createdAt: task.createdAt,
-                            timeEntries: task.timeEntries.map { entry in
-                                ExportSchema.ExportTimeEntry(
-                                    id: entry.id,
-                                    startDate: entry.startDate,
-                                    endDate: entry.endDate
-                                )
-                            }
-                        )
-                    }
-                )
-            }
-        )
-
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-
-        guard let data = try? encoder.encode(schema) else { return }
+        guard let projects = try? modelContext.fetch(descriptor),
+              let data = try? ExportService().buildJSONData(from: projects) else { return }
 
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.json]
@@ -161,18 +129,10 @@ struct SettingsView: View {
     }
 
     private func exportCSV() {
-        let descriptor = FetchDescriptor<TimeEntry>(sortBy: [SortDescriptor(\TimeEntry.startDate)])
-        guard let entries = try? modelContext.fetch(descriptor) else { return }
+        let descriptor = FetchDescriptor<Project>(sortBy: [SortDescriptor(\Project.name)])
+        guard let projects = try? modelContext.fetch(descriptor) else { return }
 
-        var csv = "project,task,start,end,duration_seconds\n"
-        for entry in entries {
-            let project = entry.task?.project?.name ?? ""
-            let task = entry.task?.name ?? ""
-            let start = ISO8601DateFormatter().string(from: entry.startDate)
-            let end = entry.endDate.map { ISO8601DateFormatter().string(from: $0) } ?? ""
-            let duration = Int(entry.duration)
-            csv += "\"\(project)\",\"\(task)\",\(start),\(end),\(duration)\n"
-        }
+        let csv = ExportService().buildCSVString(from: projects)
 
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.commaSeparatedText]
