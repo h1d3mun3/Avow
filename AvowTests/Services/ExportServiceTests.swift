@@ -8,13 +8,6 @@ struct ExportServiceTests {
 
     private let service = ExportService()
 
-    private func makeContext() throws -> ModelContext {
-        let schema = Schema([Project.self, Task.self, TimeEntry.self])
-        let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
-        return ModelContext(container)
-    }
-
     // MARK: - CSV
 
     @Test func buildCSVString_emptyProjects_returnsHeaderOnly() {
@@ -23,7 +16,7 @@ struct ExportServiceTests {
     }
 
     @Test func buildCSVString_includesProjectAndTaskName() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let project = Project(name: "My Project")
         context.insert(project)
         let task = Task(name: "My Task", project: project)
@@ -42,7 +35,7 @@ struct ExportServiceTests {
     }
 
     @Test func buildCSVString_runningEntry_hasEmptyEndField() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let project = Project(name: "P")
         context.insert(project)
         let task = Task(name: "T", project: project)
@@ -58,7 +51,7 @@ struct ExportServiceTests {
     }
 
     @Test func buildCSVString_escapesEmbeddedQuote() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let project = Project(name: "a\"b")
         context.insert(project)
         let task = Task(name: "My Task", project: project)
@@ -74,7 +67,7 @@ struct ExportServiceTests {
     }
 
     @Test func buildCSVString_keepsCommaInsideQuotedField() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let project = Project(name: "Work, Inc.")
         context.insert(project)
         let task = Task(name: "My Task", project: project)
@@ -90,7 +83,7 @@ struct ExportServiceTests {
     }
 
     @Test func buildCSVString_preservesNewlineInName() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let project = Project(name: "Line1\nLine2")
         context.insert(project)
         let task = Task(name: "My Task", project: project)
@@ -117,7 +110,7 @@ struct ExportServiceTests {
     }
 
     @Test func buildJSONData_includesProjectData() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let project = Project(name: "Work")
         context.insert(project)
 
@@ -131,7 +124,7 @@ struct ExportServiceTests {
     }
 
     @Test func buildJSONData_includesNestedTasksAndEntries() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let project = Project(name: "P")
         context.insert(project)
         let task = Task(name: "T", project: project)

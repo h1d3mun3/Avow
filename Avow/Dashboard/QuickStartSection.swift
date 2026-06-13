@@ -98,9 +98,8 @@ private struct QuickStartRow: View {
 
                 Spacer()
 
-                if isActive {
-                    let _ = appState.tick
-                    Text(appState.activeEntry?.duration.timerFormatted ?? "")
+                if isActive, let entry = appState.activeEntry {
+                    Text(appState.liveDuration(of: entry).timerFormatted)
                         .font(.caption)
                         .monospacedDigit()
                         .foregroundStyle(.secondary)

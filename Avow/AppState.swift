@@ -17,6 +17,12 @@ final class AppState {
         activeEntry != nil
     }
 
+    /// Reads `tick` so SwiftUI re-renders every second while tracking, then returns the entry's current duration.
+    func liveDuration(of entry: TimeEntry) -> TimeInterval {
+        _ = tick
+        return entry.duration
+    }
+
     init(clock: any AppClock = SystemClock(), timeEntries: any TimeEntryRepository) {
         self.clock = clock
         self.timeEntries = timeEntries

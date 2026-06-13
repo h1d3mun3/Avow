@@ -27,17 +27,10 @@ final class MockProjectRepository: ProjectRepository {
 @Suite("SidebarViewModel")
 struct SidebarViewModelTests {
 
-    private func makeContext() throws -> ModelContext {
-        let schema = Schema([Project.self, Task.self, TimeEntry.self])
-        let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
-        return ModelContext(container)
-    }
-
     // MARK: - Derived state
 
     @Test func activeProjects_returnsNonArchivedPreservingOrder() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let p1 = Project(name: "Zebra", sortOrder: 0)
         let p2 = Project(name: "Alpha", sortOrder: 1)
         let p3 = Project(name: "Beta", sortOrder: 2)
@@ -52,7 +45,7 @@ struct SidebarViewModelTests {
     }
 
     @Test func archivedProjects_returnsArchivedSortedByName() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let p1 = Project(name: "Zebra", sortOrder: 0)
         let p2 = Project(name: "Alpha", sortOrder: 1)
         let p3 = Project(name: "Beta", sortOrder: 2)
@@ -69,7 +62,7 @@ struct SidebarViewModelTests {
     // MARK: - Mutations
 
     @Test func move_passesReorderedActiveProjectsToRepository() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let p0 = Project(name: "A", sortOrder: 0)
         let p1 = Project(name: "B", sortOrder: 1)
         let p2 = Project(name: "C", sortOrder: 2)
@@ -90,7 +83,7 @@ struct SidebarViewModelTests {
     }
 
     @Test func move_excludesArchivedProjects() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let p0 = Project(name: "A", sortOrder: 0)
         let p1 = Project(name: "B", sortOrder: 1)
         let archived = Project(name: "Z", sortOrder: 2)
@@ -107,7 +100,7 @@ struct SidebarViewModelTests {
     }
 
     @Test func commitRename_whitespaceOnly_doesNotCallRepository() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let project = Project(name: "Old")
         context.insert(project)
 
@@ -121,7 +114,7 @@ struct SidebarViewModelTests {
     }
 
     @Test func commitRename_validName_callsRepositoryWithTrimmedValue() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let project = Project(name: "Old")
         context.insert(project)
 

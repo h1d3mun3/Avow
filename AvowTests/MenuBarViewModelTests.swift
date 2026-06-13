@@ -6,17 +6,10 @@ import SwiftData
 @Suite("MenuBarViewModel")
 struct MenuBarViewModelTests {
 
-    private func makeContext() throws -> ModelContext {
-        let schema = Schema([Project.self, Task.self, TimeEntry.self])
-        let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
-        return ModelContext(container)
-    }
-
     // MARK: - filteredTasks
 
     @Test func filteredTasks_filterIsCaseInsensitive() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let project = Project(name: "P")
         context.insert(project)
         let match = Task(name: "Write Report", project: project)
@@ -31,7 +24,7 @@ struct MenuBarViewModelTests {
     }
 
     @Test func filteredTasks_onlyActiveTasksIncluded() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let project = Project(name: "P")
         context.insert(project)
         let active = Task(name: "Active", project: project)
@@ -48,7 +41,7 @@ struct MenuBarViewModelTests {
     // MARK: - tasksByProject
 
     @Test func tasksByProject_dropsNilProjectTasks() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let project = Project(name: "P")
         context.insert(project)
         let kept = Task(name: "Kept", project: project)
@@ -66,7 +59,7 @@ struct MenuBarViewModelTests {
     }
 
     @Test func tasksByProject_sortsTasksWithinProjectByName() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let project = Project(name: "P")
         context.insert(project)
         let zebra = Task(name: "Zebra", project: project)
@@ -81,7 +74,7 @@ struct MenuBarViewModelTests {
     }
 
     @Test func tasksByProject_sortsProjectsByName() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let zebra = Project(name: "Zebra")
         let alpha = Project(name: "Alpha")
         [zebra, alpha].forEach { context.insert($0) }

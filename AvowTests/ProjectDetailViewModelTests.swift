@@ -22,17 +22,10 @@ final class MockTaskRepository: TaskRepository {
 @Suite("ProjectDetailViewModel")
 struct ProjectDetailViewModelTests {
 
-    private func makeContext() throws -> ModelContext {
-        let schema = Schema([Project.self, Task.self, TimeEntry.self])
-        let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
-        return ModelContext(container)
-    }
-
     // MARK: - Derived state
 
     @Test func activeTasks_returnsActiveOnlySortedByName() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let project = Project(name: "P")
         context.insert(project)
         let t1 = Task(name: "Zebra", project: project)
@@ -47,7 +40,7 @@ struct ProjectDetailViewModelTests {
     }
 
     @Test func completedTasks_returnsCompletedOnlySortedByName() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let project = Project(name: "P")
         context.insert(project)
         let t1 = Task(name: "Zebra", project: project)
@@ -63,7 +56,7 @@ struct ProjectDetailViewModelTests {
     }
 
     @Test func totalDuration_sumsAllEntries() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let project = Project(name: "P")
         context.insert(project)
         let task = Task(name: "T", project: project)
@@ -80,7 +73,7 @@ struct ProjectDetailViewModelTests {
     }
 
     @Test func thisWeekDuration_excludesEntriesBeforeWeekStart() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let project = Project(name: "P")
         context.insert(project)
         let task = Task(name: "T", project: project)
@@ -103,7 +96,7 @@ struct ProjectDetailViewModelTests {
     }
 
     @Test func thisWeekDuration_boundaryAtWeekStart_withInjectedClock() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let project = Project(name: "P")
         context.insert(project)
         let task = Task(name: "T", project: project)
@@ -132,7 +125,7 @@ struct ProjectDetailViewModelTests {
     // MARK: - Mutations
 
     @Test func addTask_callsRepositoryWithName() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let project = Project(name: "P")
         context.insert(project)
 
@@ -144,7 +137,7 @@ struct ProjectDetailViewModelTests {
     }
 
     @Test func toggleStatus_activeTask_callsRepositoryWithCompleted() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let project = Project(name: "P")
         context.insert(project)
         let task = Task(name: "T", project: project)
@@ -159,7 +152,7 @@ struct ProjectDetailViewModelTests {
     }
 
     @Test func toggleStatus_completedTask_callsRepositoryWithActive() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let project = Project(name: "P")
         context.insert(project)
         let task = Task(name: "T", project: project)
@@ -174,7 +167,7 @@ struct ProjectDetailViewModelTests {
     }
 
     @Test func delete_callsRepositoryDelete() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let project = Project(name: "P")
         context.insert(project)
         let task = Task(name: "T", project: project)
@@ -188,7 +181,7 @@ struct ProjectDetailViewModelTests {
     }
 
     @Test func rename_callsRepositoryWithNewName() throws {
-        let context = try makeContext()
+        let context = try makeInMemoryContext()
         let project = Project(name: "P")
         context.insert(project)
         let task = Task(name: "Old", project: project)

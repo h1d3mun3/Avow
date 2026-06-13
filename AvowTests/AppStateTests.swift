@@ -3,28 +3,6 @@ import Foundation
 import SwiftData
 @testable import Avow
 
-// MARK: - Mock
-
-final class ManualClock: AppClock {
-    private(set) var scheduledAction: (() -> Void)?
-    var nowDate: Date
-
-    init(now: Date = .now) {
-        nowDate = now
-    }
-
-    func now() -> Date { nowDate }
-
-    func scheduleRepeating(interval: TimeInterval, action: @escaping () -> Void) -> ClockToken {
-        scheduledAction = action
-        return ClockToken { [weak self] in self?.scheduledAction = nil }
-    }
-
-    func advance() {
-        scheduledAction?()
-    }
-}
-
 // MARK: - Fake repository
 
 private enum FakeRepositoryError: Error { case forced }
