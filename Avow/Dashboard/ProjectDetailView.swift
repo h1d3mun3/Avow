@@ -95,7 +95,12 @@ struct ProjectDetailView: View {
                                         task.updatedAt = .now
                                         try? modelContext.save()
                                     },
-                                    onSelect: { selectedTask = task }
+                                    onSelect: { selectedTask = task },
+                                    onDelete: {
+                                        if selectedTask?.id == task.id { selectedTask = nil }
+                                        modelContext.delete(task)
+                                        try? modelContext.save()
+                                    }
                                 )
                             }
                         }
@@ -116,7 +121,12 @@ struct ProjectDetailView: View {
                                         task.updatedAt = .now
                                         try? modelContext.save()
                                     },
-                                    onSelect: { selectedTask = task }
+                                    onSelect: { selectedTask = task },
+                                    onDelete: {
+                                        if selectedTask?.id == task.id { selectedTask = nil }
+                                        modelContext.delete(task)
+                                        try? modelContext.save()
+                                    }
                                 )
                             }
                         }
@@ -215,10 +225,12 @@ private struct TaskDetailRow: View {
     var isSelected: Bool = false
     let onToggle: () -> Void
     var onSelect: () -> Void = {}
+    var onDelete: (() -> Void)? = nil
 
     @Environment(\.modelContext) private var modelContext
     @State private var isRenaming = false
     @State private var renameText = ""
+    @State private var showDeleteConfirmation = false
     @FocusState private var fieldFocused: Bool
 
     private var taskDuration: TimeInterval {
@@ -270,6 +282,21 @@ private struct TaskDetailRow: View {
                 renameText = task.name
                 fieldFocused = true
             }
+            Divider()
+            Button("Delete…", role: .destructive) {
+                showDeleteConfirmation = true
+            }
+        }
+        .confirmationDialog(
+            "Delete \"\(task.name)\"?",
+            isPresented: $showDeleteConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Delete Task", role: .destructive) {
+                onDelete?()
+            }
+        } message: {
+            Text("All time records for this task will be permanently deleted.")
         }
     }
 

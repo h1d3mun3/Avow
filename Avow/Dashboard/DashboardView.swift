@@ -15,6 +15,7 @@ struct DashboardView: View {
     @State private var renameText: String = ""
     @FocusState private var renameFieldFocused: Bool
     @State private var showArchived = false
+    @State private var projectToDelete: Project?
 
     private var activeProjects: [Project] {
         projects.filter { !$0.isArchived }
@@ -43,6 +44,24 @@ struct DashboardView: View {
         }
         .sheet(isPresented: $showingSettings) {
             SettingsView()
+        }
+        .confirmationDialog(
+            "Delete \"\(projectToDelete?.name ?? "")\"?",
+            isPresented: Binding(get: { projectToDelete != nil }, set: { if !$0 { projectToDelete = nil } }),
+            titleVisibility: .visible
+        ) {
+            Button("Delete Project", role: .destructive) {
+                if let project = projectToDelete {
+                    if case .project(let selected) = selection, selected.id == project.id {
+                        selection = .overview
+                    }
+                    modelContext.delete(project)
+                    try? modelContext.save()
+                }
+                projectToDelete = nil
+            }
+        } message: {
+            Text("All tasks and time records in this project will be permanently deleted.")
         }
     }
 
@@ -94,6 +113,10 @@ struct DashboardView: View {
                             }
                             try? modelContext.save()
                         }
+                        Divider()
+                        Button("Delete…", role: .destructive) {
+                            projectToDelete = project
+                        }
                     }
                 }
                 .onMove(perform: moveProjects)
@@ -122,6 +145,10 @@ struct DashboardView: View {
                                     project.isArchived = false
                                     project.updatedAt = .now
                                     try? modelContext.save()
+                                }
+                                Divider()
+                                Button("Delete…", role: .destructive) {
+                                    projectToDelete = project
                                 }
                             }
                         }
