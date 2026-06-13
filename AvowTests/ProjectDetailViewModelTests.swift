@@ -86,11 +86,16 @@ struct ProjectDetailViewModelTests {
         let task = Task(name: "T", project: project)
         context.insert(task)
 
-        let thisWeek = TimeEntry(startDate: .now, task: task)
-        thisWeek.endDate = Date(timeIntervalSinceNow: 1800)
-        let oldEntry = TimeEntry(startDate: Date(timeIntervalSinceNow: -14 * 86400), task: task)
-        oldEntry.endDate = Date(timeIntervalSinceNow: -14 * 86400 + 3600)
-        [thisWeek, oldEntry].forEach { context.insert($0) }
+        // Use start-of-today as a stable anchor: always in this week, exact duration
+        let today = Calendar.current.startOfDay(for: .now)
+        let thisWeekEntry = TimeEntry(startDate: today, task: task)
+        thisWeekEntry.endDate = today.addingTimeInterval(1800)
+
+        let twoWeeksAgo = today.addingTimeInterval(-14 * 86400)
+        let oldEntry = TimeEntry(startDate: twoWeeksAgo, task: task)
+        oldEntry.endDate = twoWeeksAgo.addingTimeInterval(3600)
+
+        [thisWeekEntry, oldEntry].forEach { context.insert($0) }
 
         let vm = ProjectDetailViewModel(project: project, taskRepository: MockTaskRepository())
 
