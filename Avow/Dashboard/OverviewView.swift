@@ -8,70 +8,18 @@ struct OverviewView: View {
     @Query(sort: \Project.name)
     private var projects: [Project]
 
-    @Query
-    private var allEntries: [TimeEntry]
-
-    @State private var quickStartFilter = ""
-
-    private var activeProjects: [Project] {
-        projects.filter { !$0.isArchived }
-    }
-
-    private var activeEntries: [TimeEntry] {
-        activeProjects.flatMap { $0.tasks }.flatMap { $0.timeEntries }
-    }
-
-    private var totalDuration: TimeInterval {
-        activeEntries.reduce(0.0) { $0 + $1.duration }
-    }
-
-    private var thisWeekDuration: TimeInterval {
-        let startOfWeek = Calendar.current.dateInterval(of: .weekOfYear, for: .now)?.start ?? .now
-        return activeEntries
-            .filter { $0.startDate >= startOfWeek }
-            .reduce(0.0) { $0 + $1.duration }
-    }
-
-    private var todayDuration: TimeInterval {
-        let startOfDay = Calendar.current.startOfDay(for: .now)
-        return activeEntries
-            .filter { $0.startDate >= startOfDay }
-            .reduce(0.0) { $0 + $1.duration }
-    }
-
-    private var allActiveTasks: [Task] {
-        projects
-            .filter { !$0.isArchived }
-            .flatMap { $0.tasks }
-            .filter { $0.status == .active }
-    }
-
-    // Default: up to 5 tasks sorted by most recently tracked
-    private var recentTasks: [Task] {
-        Array(
-            allActiveTasks
-                .sorted { a, b in
-                    let aDate = a.timeEntries.map(\.startDate).max() ?? .distantPast
-                    let bDate = b.timeEntries.map(\.startDate).max() ?? .distantPast
-                    return aDate > bDate
-                }
-                .prefix(5)
-        )
-    }
-
-    // Search: all active tasks matching the query
-    private var searchResults: [Task] {
-        allActiveTasks
-            .filter { $0.name.localizedCaseInsensitiveContains(quickStartFilter) }
-            .sorted { $0.name < $1.name }
-    }
-
-    private var quickStartTasks: [Task] {
-        quickStartFilter.isEmpty ? recentTasks : searchResults
-    }
+    @State private var viewModel = OverviewViewModel()
 
     var body: some View {
-        if activeProjects.isEmpty {
+        content
+            .onChange(of: projects, initial: true) { _, newProjects in
+                viewModel.update(projects: newProjects)
+            }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        if viewModel.activeProjects.isEmpty {
             ContentUnavailableView(
                 "No projects yet",
                 systemImage: "folder",
@@ -85,37 +33,37 @@ struct OverviewView: View {
                     HStack(spacing: 12) {
                         SummaryCard(
                             label: "Total tracked",
-                            value: totalDuration.shortFormatted,
-                            sub: "\(activeProjects.count) projects"
+                            value: viewModel.totalDuration.shortFormatted,
+                            sub: "\(viewModel.activeProjects.count) projects"
                         )
                         SummaryCard(
                             label: "This week",
-                            value: thisWeekDuration.shortFormatted,
+                            value: viewModel.thisWeekDuration.shortFormatted,
                             sub: ""
                         )
                         SummaryCard(
                             label: "Today",
-                            value: todayDuration.shortFormatted,
+                            value: viewModel.todayDuration.shortFormatted,
                             sub: ""
                         )
                     }
 
                     // Quick start
-                    if !allActiveTasks.isEmpty {
+                    if !viewModel.allActiveTasks.isEmpty {
                         Text("Quick start")
                             .font(.subheadline)
                             .fontWeight(.medium)
                             .foregroundStyle(.secondary)
 
-                        QuickStartSearchField(text: $quickStartFilter)
+                        QuickStartSearchField(text: $viewModel.quickStartFilter)
 
-                        if quickStartTasks.isEmpty {
+                        if viewModel.quickStartTasks.isEmpty {
                             Text("No tasks found")
                                 .font(.caption)
                                 .foregroundStyle(.tertiary)
                                 .padding(.leading, 4)
                         } else {
-                            ForEach(quickStartTasks) { task in
+                            ForEach(viewModel.quickStartTasks) { task in
                                 let isActive = appState.activeEntry?.task?.id == task.id
                                 QuickStartRow(task: task, isActive: isActive) {
                                     if isActive {
@@ -134,11 +82,11 @@ struct OverviewView: View {
                         .fontWeight(.medium)
                         .foregroundStyle(.secondary)
 
-                    ForEach(activeProjects) { project in
+                    ForEach(viewModel.activeProjects) { project in
                         let duration = project.tasks
                             .flatMap(\.timeEntries)
                             .reduce(0.0) { $0 + $1.duration }
-                        let fraction = totalDuration > 0 ? duration / totalDuration : 0
+                        let fraction = viewModel.totalDuration > 0 ? duration / viewModel.totalDuration : 0
 
                         HStack(spacing: 10) {
                             Text(project.name)

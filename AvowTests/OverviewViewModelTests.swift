@@ -1,0 +1,182 @@
+import Testing
+import Foundation
+import SwiftData
+@testable import Avow
+
+@Suite("OverviewViewModel")
+struct OverviewViewModelTests {
+
+    private func makeContext() throws -> ModelContext {
+        let schema = Schema([Project.self, Task.self, TimeEntry.self])
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try ModelContainer(for: schema, configurations: [config])
+        return ModelContext(container)
+    }
+
+    // MARK: - activeProjects
+
+    @Test func activeProjects_excludesArchived() throws {
+        let context = try makeContext()
+        let active = Project(name: "Active")
+        let archived = Project(name: "Archived")
+        archived.isArchived = true
+        [active, archived].forEach { context.insert($0) }
+
+        let vm = OverviewViewModel()
+        vm.update(projects: [active, archived])
+
+        #expect(vm.activeProjects.count == 1)
+        #expect(vm.activeProjects[0].name == "Active")
+    }
+
+    // MARK: - Duration aggregations
+
+    @Test func totalDuration_sumsAllActiveProjectEntries() throws {
+        let context = try makeContext()
+        let project = Project(name: "P")
+        context.insert(project)
+        let task = Task(name: "T", project: project)
+        context.insert(task)
+        let e1 = TimeEntry(startDate: Date(timeIntervalSinceReferenceDate: 0), task: task)
+        e1.endDate = Date(timeIntervalSinceReferenceDate: 3600)
+        let e2 = TimeEntry(startDate: Date(timeIntervalSinceReferenceDate: 7200), task: task)
+        e2.endDate = Date(timeIntervalSinceReferenceDate: 9000)
+        [e1, e2].forEach { context.insert($0) }
+
+        let vm = OverviewViewModel()
+        vm.update(projects: [project])
+
+        #expect(vm.totalDuration == 5400)
+    }
+
+    @Test func totalDuration_excludesArchivedProjects() throws {
+        let context = try makeContext()
+        let active = Project(name: "Active")
+        let archived = Project(name: "Archived")
+        archived.isArchived = true
+        [active, archived].forEach { context.insert($0) }
+
+        let activeTask = Task(name: "AT", project: active)
+        let archivedTask = Task(name: "AT2", project: archived)
+        [activeTask, archivedTask].forEach { context.insert($0) }
+
+        let e1 = TimeEntry(startDate: Date(timeIntervalSinceReferenceDate: 0), task: activeTask)
+        e1.endDate = Date(timeIntervalSinceReferenceDate: 1800)
+        let e2 = TimeEntry(startDate: Date(timeIntervalSinceReferenceDate: 0), task: archivedTask)
+        e2.endDate = Date(timeIntervalSinceReferenceDate: 3600)
+        [e1, e2].forEach { context.insert($0) }
+
+        let vm = OverviewViewModel()
+        vm.update(projects: [active, archived])
+
+        #expect(vm.totalDuration == 1800)
+    }
+
+    @Test func thisWeekDuration_excludesOldEntries() throws {
+        let context = try makeContext()
+        let project = Project(name: "P")
+        context.insert(project)
+        let task = Task(name: "T", project: project)
+        context.insert(task)
+
+        let today = Calendar.current.startOfDay(for: .now)
+        let thisWeekEntry = TimeEntry(startDate: today, task: task)
+        thisWeekEntry.endDate = today.addingTimeInterval(1800)
+
+        let twoWeeksAgo = today.addingTimeInterval(-14 * 86400)
+        let oldEntry = TimeEntry(startDate: twoWeeksAgo, task: task)
+        oldEntry.endDate = twoWeeksAgo.addingTimeInterval(3600)
+
+        [thisWeekEntry, oldEntry].forEach { context.insert($0) }
+
+        let vm = OverviewViewModel()
+        vm.update(projects: [project])
+
+        #expect(vm.thisWeekDuration == 1800)
+    }
+
+    @Test func todayDuration_excludesYesterdayEntries() throws {
+        let context = try makeContext()
+        let project = Project(name: "P")
+        context.insert(project)
+        let task = Task(name: "T", project: project)
+        context.insert(task)
+
+        let today = Calendar.current.startOfDay(for: .now)
+        let todayEntry = TimeEntry(startDate: today, task: task)
+        todayEntry.endDate = today.addingTimeInterval(900)
+
+        let yesterday = today.addingTimeInterval(-86400)
+        let oldEntry = TimeEntry(startDate: yesterday, task: task)
+        oldEntry.endDate = yesterday.addingTimeInterval(3600)
+
+        [todayEntry, oldEntry].forEach { context.insert($0) }
+
+        let vm = OverviewViewModel()
+        vm.update(projects: [project])
+
+        #expect(vm.todayDuration == 900)
+    }
+
+    // MARK: - allActiveTasks
+
+    @Test func allActiveTasks_excludesCompletedAndArchivedProjects() throws {
+        let context = try makeContext()
+        let active = Project(name: "Active")
+        let archived = Project(name: "Archived")
+        archived.isArchived = true
+        [active, archived].forEach { context.insert($0) }
+
+        let t1 = Task(name: "Active task", project: active)
+        let t2 = Task(name: "Completed task", project: active)
+        t2.status = .completed
+        let t3 = Task(name: "Archived project task", project: archived)
+        [t1, t2, t3].forEach { context.insert($0) }
+
+        let vm = OverviewViewModel()
+        vm.update(projects: [active, archived])
+
+        #expect(vm.allActiveTasks.count == 1)
+        #expect(vm.allActiveTasks[0].name == "Active task")
+    }
+
+    // MARK: - quickStartTasks
+
+    @Test func quickStartTasks_emptyFilter_returnsUpToFiveRecentTasks() throws {
+        let context = try makeContext()
+        let project = Project(name: "P")
+        context.insert(project)
+
+        let tasks = (1...6).map { i -> Task in
+            let t = Task(name: "Task \(i)", project: project)
+            context.insert(t)
+            let anchor = Date(timeIntervalSinceReferenceDate: Double(i) * 3600)
+            let entry = TimeEntry(startDate: anchor, task: t)
+            entry.endDate = anchor.addingTimeInterval(60)
+            context.insert(entry)
+            return t
+        }
+        _ = tasks
+
+        let vm = OverviewViewModel()
+        vm.update(projects: [project])
+
+        #expect(vm.quickStartTasks.count == 5)
+    }
+
+    @Test func quickStartTasks_withFilter_returnsMatchingTasksSortedByName() throws {
+        let context = try makeContext()
+        let project = Project(name: "P")
+        context.insert(project)
+        let t1 = Task(name: "Alpha work", project: project)
+        let t2 = Task(name: "Beta work", project: project)
+        let t3 = Task(name: "Unrelated", project: project)
+        [t1, t2, t3].forEach { context.insert($0) }
+
+        let vm = OverviewViewModel()
+        vm.update(projects: [project])
+        vm.quickStartFilter = "work"
+
+        #expect(vm.quickStartTasks.map(\.name) == ["Alpha work", "Beta work"])
+    }
+}
