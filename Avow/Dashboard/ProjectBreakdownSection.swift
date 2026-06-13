@@ -10,9 +10,7 @@ struct ProjectBreakdownSection: View {
             .foregroundStyle(.secondary)
 
         ForEach(viewModel.activeProjects) { project in
-            let duration = project.tasks
-                .flatMap(\.timeEntries)
-                .reduce(0.0) { $0 + $1.duration }
+            let duration = project.totalDuration
             let fraction = viewModel.totalDuration > 0 ? duration / viewModel.totalDuration : 0
 
             HStack(spacing: 10) {

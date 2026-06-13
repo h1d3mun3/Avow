@@ -49,9 +49,7 @@ struct SidebarView: View {
                             } else {
                                 Text(project.name)
                                 Spacer()
-                                let total = project.tasks
-                                    .flatMap(\.timeEntries)
-                                    .reduce(0.0) { $0 + $1.duration }
+                                let total = project.totalDuration
                                 Text(total.shortFormatted)
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
@@ -89,9 +87,7 @@ struct SidebarView: View {
                                     Text(project.name)
                                         .foregroundStyle(.secondary)
                                     Spacer()
-                                    let total = project.tasks
-                                        .flatMap(\.timeEntries)
-                                        .reduce(0.0) { $0 + $1.duration }
+                                    let total = project.totalDuration
                                     Text(total.shortFormatted)
                                         .font(.caption)
                                         .foregroundStyle(.tertiary)

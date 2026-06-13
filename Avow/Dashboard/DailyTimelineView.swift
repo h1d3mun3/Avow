@@ -20,7 +20,7 @@ struct DailyTimelineView: View {
     }
 
     private var totalDuration: TimeInterval {
-        entries.reduce(0) { $0 + $1.duration }
+        entries.totalDuration
     }
 
     private var groupedByTask: [(task: Task?, entries: [TimeEntry])] {
@@ -84,7 +84,7 @@ private struct TaskEntryGroup: View {
     let entries: [TimeEntry]
 
     private var groupDuration: TimeInterval {
-        entries.reduce(0) { $0 + $1.duration }
+        entries.totalDuration
     }
 
     var body: some View {

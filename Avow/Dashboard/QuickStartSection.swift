@@ -74,7 +74,7 @@ private struct QuickStartRow: View {
         let start = Calendar.current.startOfDay(for: .now)
         return task.timeEntries
             .filter { $0.startDate >= start }
-            .reduce(0) { $0 + $1.duration }
+            .totalDuration
     }
 
     var body: some View {
