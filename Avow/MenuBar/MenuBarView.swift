@@ -9,45 +9,23 @@ struct MenuBarView: View {
     @Query(sort: \Task.name)
     private var allTasks: [Task]
 
-    private var activeTasks: [Task] {
-        allTasks.filter { $0.status == .active }
-    }
-
-    @State private var filterText = ""
-
-    private var filteredTasks: [Task] {
-        if filterText.isEmpty {
-            return activeTasks
-        }
-        return activeTasks.filter {
-            $0.name.localizedCaseInsensitiveContains(filterText)
-        }
-    }
-
-    private var tasksByProject: [(project: Project, tasks: [Task])] {
-        let grouped = Dictionary(grouping: filteredTasks) { $0.project }
-        return grouped
-            .compactMap { project, tasks -> (Project, [Task])? in
-                guard let project else { return nil }
-                return (project, tasks.sorted { $0.name < $1.name })
-            }
-            .sorted { $0.0.name < $1.0.name }
-    }
+    @State private var viewModel = MenuBarViewModel()
 
     var body: some View {
+        @Bindable var viewModel = viewModel
         VStack(spacing: 0) {
             if let entry = appState.activeEntry {
                 NowPlayingView(entry: entry)
             }
 
-            SearchField(text: $filterText)
+            SearchField(text: $viewModel.filterText)
 
             ScrollView {
                 VStack(spacing: 0) {
-                    if tasksByProject.isEmpty {
+                    if viewModel.tasksByProject.isEmpty {
                         emptyState
                     } else {
-                        ForEach(tasksByProject, id: \.project.id) { project, tasks in
+                        ForEach(viewModel.tasksByProject, id: \.project.id) { project, tasks in
                             ProjectSection(
                                 project: project,
                                 tasks: tasks,
@@ -64,6 +42,9 @@ struct MenuBarView: View {
             footer
         }
         .frame(width: 280)
+        .onChange(of: allTasks, initial: true) { _, new in
+            viewModel.update(tasks: new)
+        }
         .onAppear {
             appState.restoreActiveEntry(context: modelContext)
         }

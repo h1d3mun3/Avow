@@ -292,4 +292,47 @@ struct OverviewViewModelTests {
         let names = vm.quickStartTasks.map(\.name)
         #expect(names == ["Tracked", "NeverTracked"])
     }
+
+    // MARK: - projectBreakdown
+
+    @Test func projectBreakdown_noEntries_fractionIsZero() throws {
+        let context = try makeContext()
+        let project = Project(name: "P")
+        context.insert(project)
+
+        let vm = OverviewViewModel()
+        vm.update(projects: [project])
+
+        #expect(vm.projectBreakdown.count == 1)
+        #expect(vm.projectBreakdown[0].duration == 0)
+        #expect(vm.projectBreakdown[0].fraction == 0)
+    }
+
+    @Test func projectBreakdown_fractionsReflectPerProjectShare() throws {
+        let context = try makeContext()
+        let alpha = Project(name: "Alpha")
+        let beta = Project(name: "Beta")
+        [alpha, beta].forEach { context.insert($0) }
+        let alphaTask = Task(name: "AT", project: alpha)
+        let betaTask = Task(name: "BT", project: beta)
+        [alphaTask, betaTask].forEach { context.insert($0) }
+
+        // Alpha 3000, Beta 1000 -> total 4000.
+        let alphaEntry = TimeEntry(startDate: Date(timeIntervalSinceReferenceDate: 0), task: alphaTask)
+        alphaEntry.endDate = Date(timeIntervalSinceReferenceDate: 3000)
+        let betaEntry = TimeEntry(startDate: Date(timeIntervalSinceReferenceDate: 0), task: betaTask)
+        betaEntry.endDate = Date(timeIntervalSinceReferenceDate: 1000)
+        [alphaEntry, betaEntry].forEach { context.insert($0) }
+
+        let vm = OverviewViewModel()
+        vm.update(projects: [alpha, beta])
+
+        let byName = Dictionary(
+            uniqueKeysWithValues: vm.projectBreakdown.map { ($0.project.name, $0) }
+        )
+        #expect(byName["Alpha"]?.duration == 3000)
+        #expect(byName["Alpha"]?.fraction == 0.75)
+        #expect(byName["Beta"]?.duration == 1000)
+        #expect(byName["Beta"]?.fraction == 0.25)
+    }
 }

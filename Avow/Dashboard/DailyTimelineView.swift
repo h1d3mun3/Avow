@@ -21,17 +21,6 @@ struct DailyTimelineView: View {
         entries.totalDuration
     }
 
-    private var groupedByTask: [(task: Task?, entries: [TimeEntry])] {
-        var groups: [UUID?: [TimeEntry]] = [:]
-        for entry in entries {
-            groups[entry.task?.id, default: []].append(entry)
-        }
-        return groups.map { (_, entryList) in
-            (task: entryList.first?.task, entries: entryList)
-        }
-        .sorted { ($0.task?.name ?? "") < ($1.task?.name ?? "") }
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             summaryHeader
@@ -49,7 +38,7 @@ struct DailyTimelineView: View {
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
-                        ForEach(groupedByTask, id: \.task?.id) { group in
+                        ForEach(groupEntriesByTask(entries), id: \.task?.id) { group in
                             TaskEntryGroup(task: group.task, entries: group.entries)
                         }
                     }

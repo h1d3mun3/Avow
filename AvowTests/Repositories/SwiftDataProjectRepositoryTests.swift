@@ -13,6 +13,32 @@ struct SwiftDataProjectRepositoryTests {
         return (SwiftDataProjectRepository(context: context), context)
     }
 
+    @Test func create_returnsProjectWithNextSortOrder() throws {
+        let (repo, context) = try makeRepository()
+        for i in 0..<3 {
+            context.insert(Project(name: "P\(i)", sortOrder: i))
+        }
+        try context.save()
+
+        let created = try repo.create(named: "New")
+
+        #expect(created.sortOrder == 3)
+        let all = try context.fetch(FetchDescriptor<Project>())
+        #expect(all.contains { $0.id == created.id })
+    }
+
+    @Test func allProjectsSortedByName_returnsNameSorted() throws {
+        let (repo, context) = try makeRepository()
+        context.insert(Project(name: "Charlie"))
+        context.insert(Project(name: "Alpha"))
+        context.insert(Project(name: "Bravo"))
+        try context.save()
+
+        let projects = try repo.allProjectsSortedByName()
+
+        #expect(projects.map(\.name) == ["Alpha", "Bravo", "Charlie"])
+    }
+
     @Test func archive_setsIsArchivedTrue() throws {
         let (repo, context) = try makeRepository()
         let project = Project(name: "Test")
