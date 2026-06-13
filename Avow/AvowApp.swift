@@ -46,6 +46,7 @@ struct AvowApp: App {
                 .task {
                     appState.restoreActiveEntry(context: modelContainer.mainContext)
                 }
+                .background(DashboardWindowOpener())
         }
         .menuBarExtraStyle(.window)
 
@@ -58,6 +59,21 @@ struct AvowApp: App {
         }
         .defaultSize(width: 900, height: 600)
         .defaultPosition(.center)
+    }
+}
+
+// MARK: - Dashboard window opener
+
+// Opens the Dashboard window on launch via openWindow, which works even when
+// state restoration would otherwise leave the window closed.
+private struct DashboardWindowOpener: View {
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some View {
+        Color.clear
+            .onAppear {
+                openWindow(id: "dashboard")
+            }
     }
 }
 
