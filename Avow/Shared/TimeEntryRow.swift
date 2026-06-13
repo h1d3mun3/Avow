@@ -4,7 +4,7 @@ import SwiftData
 struct TimeEntryRow: View {
     let entry: TimeEntry
 
-    @Environment(\.modelContext) private var modelContext
+    @Environment(Repositories.self) private var repositories
     @State private var isEditing = false
     @State private var editStart: Date = .now
     @State private var editEnd: Date = .now
@@ -50,8 +50,7 @@ struct TimeEntryRow: View {
             .help("Edit times")
 
             Button(role: .destructive) {
-                modelContext.delete(entry)
-                try? modelContext.save()
+                try? repositories.timeEntry.delete(entry)
             } label: {
                 Image(systemName: "trash")
                     .foregroundStyle(.red)
@@ -74,9 +73,7 @@ struct TimeEntryRow: View {
                     Button("Cancel") { isEditing = false }
                     Spacer()
                     Button("Save") {
-                        entry.startDate = editStart
-                        if entry.endDate != nil { entry.endDate = editEnd }
-                        try? modelContext.save()
+                        try? repositories.timeEntry.update(entry, start: editStart, end: editEnd)
                         isEditing = false
                     }
                     .buttonStyle(.borderedProminent)

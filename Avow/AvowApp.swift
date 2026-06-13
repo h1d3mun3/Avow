@@ -26,6 +26,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 struct AvowApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     let modelContainer: ModelContainer
+    let repositories: Repositories
     @State private var appState = AppState()
 
     init() {
@@ -40,10 +41,12 @@ struct AvowApp: App {
                 schema: schema,
                 isStoredInMemoryOnly: false
             )
-            modelContainer = try ModelContainer(
+            let container = try ModelContainer(
                 for: schema,
                 configurations: [config]
             )
+            modelContainer = container
+            repositories = Repositories(context: container.mainContext)
         } catch {
             fatalError("Failed to initialize ModelContainer: \(error)")
         }
@@ -55,6 +58,7 @@ struct AvowApp: App {
         MenuBarExtra {
             MenuBarView()
                 .environment(appState)
+                .environment(repositories)
                 .modelContainer(modelContainer)
         } label: {
             MenuBarLabel(appState: appState)
@@ -70,6 +74,7 @@ struct AvowApp: App {
         Window("Dashboard", id: "dashboard") {
             DashboardView()
                 .environment(appState)
+                .environment(repositories)
                 .modelContainer(modelContainer)
         }
         .defaultSize(width: 900, height: 600)

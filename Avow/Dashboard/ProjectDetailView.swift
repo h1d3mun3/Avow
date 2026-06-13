@@ -4,7 +4,7 @@ import SwiftData
 struct ProjectDetailView: View {
     let project: Project
 
-    @Environment(\.modelContext) private var modelContext
+    @Environment(Repositories.self) private var repositories
     @State private var newTaskName = ""
     @State private var selectedTask: Task?
 
@@ -91,15 +91,12 @@ struct ProjectDetailView: View {
                                     task: task,
                                     isSelected: selectedTask?.id == task.id,
                                     onToggle: {
-                                        task.status = .completed
-                                        task.updatedAt = .now
-                                        try? modelContext.save()
+                                        try? repositories.task.updateStatus(task, to: .completed)
                                     },
                                     onSelect: { selectedTask = task },
                                     onDelete: {
                                         if selectedTask?.id == task.id { selectedTask = nil }
-                                        modelContext.delete(task)
-                                        try? modelContext.save()
+                                        try? repositories.task.delete(task)
                                     }
                                 )
                             }
@@ -117,15 +114,12 @@ struct ProjectDetailView: View {
                                     isCompleted: true,
                                     isSelected: selectedTask?.id == task.id,
                                     onToggle: {
-                                        task.status = .active
-                                        task.updatedAt = .now
-                                        try? modelContext.save()
+                                        try? repositories.task.updateStatus(task, to: .active)
                                     },
                                     onSelect: { selectedTask = task },
                                     onDelete: {
                                         if selectedTask?.id == task.id { selectedTask = nil }
-                                        modelContext.delete(task)
-                                        try? modelContext.save()
+                                        try? repositories.task.delete(task)
                                     }
                                 )
                             }
@@ -188,9 +182,7 @@ struct ProjectDetailView: View {
     private func addTask() {
         let name = newTaskName.trimmingCharacters(in: .whitespaces)
         guard !name.isEmpty else { return }
-        let task = Task(name: name, project: project)
-        modelContext.insert(task)
-        try? modelContext.save()
+        try? repositories.task.add(named: name, to: project)
         newTaskName = ""
     }
 }
@@ -227,7 +219,7 @@ private struct TaskDetailRow: View {
     var onSelect: () -> Void = {}
     var onDelete: (() -> Void)? = nil
 
-    @Environment(\.modelContext) private var modelContext
+    @Environment(Repositories.self) private var repositories
     @State private var isRenaming = false
     @State private var renameText = ""
     @State private var showDeleteConfirmation = false
@@ -303,12 +295,9 @@ private struct TaskDetailRow: View {
     private func commitRename() {
         let trimmed = renameText.trimmingCharacters(in: .whitespaces)
         if !trimmed.isEmpty {
-            task.name = trimmed
-            task.updatedAt = .now
-            try? modelContext.save()
+            try? repositories.task.rename(task, to: trimmed)
         }
         isRenaming = false
         renameText = ""
     }
 }
-
