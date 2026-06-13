@@ -7,9 +7,24 @@
 
 import SwiftUI
 import SwiftData
+import AppKit
+
+// MARK: - App Delegate
+
+class AppDelegate: NSObject, NSApplicationDelegate {
+    var openWindow: ((String) -> Void)?
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
+        if !hasVisibleWindows {
+            openWindow?("dashboard")
+        }
+        return true
+    }
+}
 
 @main
 struct AvowApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     let modelContainer: ModelContainer
     @State private var appState = AppState()
 
@@ -46,7 +61,7 @@ struct AvowApp: App {
                 .task {
                     appState.restoreActiveEntry(context: modelContainer.mainContext)
                 }
-                .background(DashboardWindowOpener())
+                .background(DashboardWindowOpener(appDelegate: appDelegate))
         }
         .menuBarExtraStyle(.window)
 
@@ -64,14 +79,16 @@ struct AvowApp: App {
 
 // MARK: - Dashboard window opener
 
-// Opens the Dashboard window on launch via openWindow, which works even when
-// state restoration would otherwise leave the window closed.
+// Opens the Dashboard window on launch and wires openWindow into AppDelegate
+// so Dock icon clicks can reopen the window after it's been closed.
 private struct DashboardWindowOpener: View {
     @Environment(\.openWindow) private var openWindow
+    let appDelegate: AppDelegate
 
     var body: some View {
         Color.clear
             .onAppear {
+                appDelegate.openWindow = { id in openWindow(id: id) }
                 openWindow(id: "dashboard")
             }
     }
