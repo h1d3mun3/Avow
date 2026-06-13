@@ -3,7 +3,7 @@ import SwiftData
 
 struct DashboardView: View {
     @Environment(AppState.self) private var appState
-    @Environment(\.modelContext) private var modelContext
+    @Environment(Repositories.self) private var repositories
 
     @Query(sort: \Project.sortOrder)
     private var projects: [Project]
@@ -55,8 +55,7 @@ struct DashboardView: View {
                     if case .project(let selected) = selection, selected.id == project.id {
                         selection = .overview
                     }
-                    modelContext.delete(project)
-                    try? modelContext.save()
+                    try? repositories.project.delete(project)
                 }
                 projectToDelete = nil
             }
@@ -106,12 +105,10 @@ struct DashboardView: View {
                             renameFieldFocused = true
                         }
                         Button("Archive") {
-                            project.isArchived = true
-                            project.updatedAt = .now
                             if case .project(let selected) = selection, selected.id == project.id {
                                 selection = .overview
                             }
-                            try? modelContext.save()
+                            try? repositories.project.archive(project)
                         }
                         Divider()
                         Button("Delete…", role: .destructive) {
@@ -142,9 +139,7 @@ struct DashboardView: View {
                             }
                             .contextMenu {
                                 Button("Unarchive") {
-                                    project.isArchived = false
-                                    project.updatedAt = .now
-                                    try? modelContext.save()
+                                    try? repositories.project.unarchive(project)
                                 }
                                 Divider()
                                 Button("Delete…", role: .destructive) {
@@ -192,10 +187,7 @@ struct DashboardView: View {
     private func moveProjects(from source: IndexSet, to destination: Int) {
         var reordered = activeProjects
         reordered.move(fromOffsets: source, toOffset: destination)
-        for (index, project) in reordered.enumerated() {
-            project.sortOrder = index
-        }
-        try? modelContext.save()
+        try? repositories.project.reorder(reordered)
     }
 
     // MARK: - Rename
@@ -203,9 +195,7 @@ struct DashboardView: View {
     private func commitRename() {
         let trimmed = renameText.trimmingCharacters(in: .whitespaces)
         if !trimmed.isEmpty, let project = renamingProject {
-            project.name = trimmed
-            project.updatedAt = .now
-            try? modelContext.save()
+            try? repositories.project.rename(project, to: trimmed)
         }
         renamingProject = nil
         renameText = ""
