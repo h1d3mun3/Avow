@@ -118,6 +118,72 @@ struct OverviewViewModelTests {
         #expect(vm.todayDuration == 900)
     }
 
+    // MARK: - Deterministic duration boundaries (injected clock)
+
+    @Test func thisWeekDuration_entryExactlyAtWeekStart_counts() throws {
+        let context = try makeContext()
+        let project = Project(name: "P")
+        context.insert(project)
+        let task = Task(name: "T", project: project)
+        context.insert(task)
+
+        // Fixed "now": Thursday 2024-01-18 15:45 UTC.
+        let now = Date(timeIntervalSinceReferenceDate: 727285500)
+        let weekStart = Calendar.current.dateInterval(of: .weekOfYear, for: now)!.start
+
+        let atStart = TimeEntry(startDate: weekStart, task: task)
+        atStart.endDate = weekStart.addingTimeInterval(600)
+        context.insert(atStart)
+
+        let vm = OverviewViewModel(clock: ManualClock(now: now))
+        vm.update(projects: [project])
+
+        #expect(vm.thisWeekDuration == 600)
+    }
+
+    @Test func thisWeekDuration_entryASecondBeforeWeekStart_excluded() throws {
+        let context = try makeContext()
+        let project = Project(name: "P")
+        context.insert(project)
+        let task = Task(name: "T", project: project)
+        context.insert(task)
+
+        let now = Date(timeIntervalSinceReferenceDate: 727285500)
+        let weekStart = Calendar.current.dateInterval(of: .weekOfYear, for: now)!.start
+
+        // One second before the week start: must be excluded.
+        let justBefore = TimeEntry(startDate: weekStart.addingTimeInterval(-1), task: task)
+        justBefore.endDate = weekStart.addingTimeInterval(600)
+        context.insert(justBefore)
+
+        let vm = OverviewViewModel(clock: ManualClock(now: now))
+        vm.update(projects: [project])
+
+        #expect(vm.thisWeekDuration == 0)
+    }
+
+    @Test func todayDuration_entryExactlyAtMidnight_counts_oneSecondBeforeExcluded() throws {
+        let context = try makeContext()
+        let project = Project(name: "P")
+        context.insert(project)
+        let task = Task(name: "T", project: project)
+        context.insert(task)
+
+        let now = Date(timeIntervalSinceReferenceDate: 727285500)
+        let startOfDay = Calendar.current.startOfDay(for: now)
+
+        let atMidnight = TimeEntry(startDate: startOfDay, task: task)
+        atMidnight.endDate = startOfDay.addingTimeInterval(300)
+        let justBefore = TimeEntry(startDate: startOfDay.addingTimeInterval(-1), task: task)
+        justBefore.endDate = startOfDay.addingTimeInterval(300)
+        [atMidnight, justBefore].forEach { context.insert($0) }
+
+        let vm = OverviewViewModel(clock: ManualClock(now: now))
+        vm.update(projects: [project])
+
+        #expect(vm.todayDuration == 300)
+    }
+
     // MARK: - allActiveTasks
 
     @Test func allActiveTasks_excludesCompletedAndArchivedProjects() throws {

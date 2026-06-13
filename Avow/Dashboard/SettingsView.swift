@@ -7,10 +7,6 @@ struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
 
-    @AppStorage("launchAtLogin") private var launchAtLogin = false
-    @AppStorage("showElapsedInMenuBar") private var showElapsedInMenuBar = true
-    @AppStorage("showTaskNameInMenuBar") private var showTaskNameInMenuBar = false
-
     @State private var showingResetConfirmation = false
     @State private var exportMessage: String?
 
@@ -35,17 +31,6 @@ struct SettingsView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
-                    // General
-                    SettingsSection(title: "General") {
-                        Toggle("Launch at login", isOn: $launchAtLogin)
-                    }
-
-                    // Menu bar
-                    SettingsSection(title: "Menu bar") {
-                        Toggle("Show elapsed time", isOn: $showElapsedInMenuBar)
-                        Toggle("Show task name", isOn: $showTaskNameInMenuBar)
-                    }
-
                     // Data
                     SettingsSection(title: "Data") {
                         VStack(alignment: .leading, spacing: 8) {
@@ -94,7 +79,7 @@ struct SettingsView: View {
                     }
 
                     // Version
-                    Text("Avow v0.1.0")
+                    Text("Avow v\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—")")
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                         .frame(maxWidth: .infinity, alignment: .center)

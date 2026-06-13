@@ -6,6 +6,12 @@ final class OverviewViewModel {
     private(set) var projects: [Project] = []
     var quickStartFilter: String = ""
 
+    private let clock: any AppClock
+
+    init(clock: any AppClock = SystemClock()) {
+        self.clock = clock
+    }
+
     func update(projects: [Project]) {
         self.projects = projects
     }
@@ -25,14 +31,14 @@ final class OverviewViewModel {
     }
 
     var thisWeekDuration: TimeInterval {
-        let startOfWeek = Calendar.current.dateInterval(of: .weekOfYear, for: .now)?.start ?? .now
+        let startOfWeek = Calendar.current.dateInterval(of: .weekOfYear, for: clock.now())?.start ?? clock.now()
         return activeEntries
             .filter { $0.startDate >= startOfWeek }
             .totalDuration
     }
 
     var todayDuration: TimeInterval {
-        let startOfDay = Calendar.current.startOfDay(for: .now)
+        let startOfDay = Calendar.current.startOfDay(for: clock.now())
         return activeEntries
             .filter { $0.startDate >= startOfDay }
             .totalDuration

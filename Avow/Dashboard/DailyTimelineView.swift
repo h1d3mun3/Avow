@@ -8,9 +8,7 @@ struct DailyTimelineView: View {
 
     init(date: Date) {
         self.date = date
-        let cal = Calendar.current
-        let start = cal.startOfDay(for: date)
-        let end = cal.date(byAdding: .day, value: 1, to: start)!
+        let (start, end) = DateWindows().dayBounds(for: date)
         _entries = Query(
             filter: #Predicate<TimeEntry> { entry in
                 entry.startDate >= start && entry.startDate < end

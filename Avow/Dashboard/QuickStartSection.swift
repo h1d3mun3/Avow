@@ -71,7 +71,7 @@ private struct QuickStartRow: View {
     @Environment(AppState.self) private var appState
 
     private var todayDuration: TimeInterval {
-        let start = Calendar.current.startOfDay(for: .now)
+        let start = DateWindows().startOfToday()
         return task.timeEntries
             .filter { $0.startDate >= start }
             .totalDuration

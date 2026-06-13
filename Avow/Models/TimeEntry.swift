@@ -17,8 +17,11 @@ final class TimeEntry {
     }
 
     var duration: TimeInterval {
-        let end = endDate ?? .now
-        return end.timeIntervalSince(startDate)
+        duration(asOf: .now)
+    }
+
+    func duration(asOf reference: Date) -> TimeInterval {
+        (endDate ?? reference).timeIntervalSince(startDate)
     }
 
     init(
