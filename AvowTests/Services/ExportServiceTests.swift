@@ -61,7 +61,9 @@ struct ExportServiceTests {
 
     @Test func buildJSONData_emptyProjects_decodesCorrectly() throws {
         let data = try service.buildJSONData(from: [])
-        let decoded = try JSONDecoder().decode(ExportSchema.self, from: data)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let decoded = try decoder.decode(ExportSchema.self, from: data)
         #expect(decoded.version == ExportSchema.version)
         #expect(decoded.projects.isEmpty)
     }
