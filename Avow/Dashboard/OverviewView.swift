@@ -29,91 +29,27 @@ struct OverviewView: View {
         } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    // Summary cards
                     HStack(spacing: 12) {
-                        SummaryCard(
+                        OverviewSummaryCard(
                             label: "Total tracked",
                             value: viewModel.totalDuration.shortFormatted,
                             sub: "\(viewModel.activeProjects.count) projects"
                         )
-                        SummaryCard(
+                        OverviewSummaryCard(
                             label: "This week",
                             value: viewModel.thisWeekDuration.shortFormatted,
                             sub: ""
                         )
-                        SummaryCard(
+                        OverviewSummaryCard(
                             label: "Today",
                             value: viewModel.todayDuration.shortFormatted,
                             sub: ""
                         )
                     }
 
-                    // Quick start
-                    if !viewModel.allActiveTasks.isEmpty {
-                        Text("Quick start")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundStyle(.secondary)
+                    QuickStartSection(viewModel: viewModel)
 
-                        QuickStartSearchField(text: $viewModel.quickStartFilter)
-
-                        if viewModel.quickStartTasks.isEmpty {
-                            Text("No tasks found")
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                                .padding(.leading, 4)
-                        } else {
-                            ForEach(viewModel.quickStartTasks) { task in
-                                let isActive = appState.activeEntry?.task?.id == task.id
-                                QuickStartRow(task: task, isActive: isActive) {
-                                    if isActive {
-                                        appState.stopTracking(context: modelContext)
-                                    } else {
-                                        appState.switchTask(to: task, context: modelContext)
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // Project breakdown
-                    Text("Time by project")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundStyle(.secondary)
-
-                    ForEach(viewModel.activeProjects) { project in
-                        let duration = project.tasks
-                            .flatMap(\.timeEntries)
-                            .reduce(0.0) { $0 + $1.duration }
-                        let fraction = viewModel.totalDuration > 0 ? duration / viewModel.totalDuration : 0
-
-                        HStack(spacing: 10) {
-                            Text(project.name)
-                                .font(.subheadline)
-                            Spacer()
-                            GeometryReader { geo in
-                                RoundedRectangle(cornerRadius: 3)
-                                    .fill(.quaternary)
-                                    .frame(width: geo.size.width)
-                                    .overlay(alignment: .leading) {
-                                        RoundedRectangle(cornerRadius: 3)
-                                            .fill(.secondary)
-                                            .frame(width: geo.size.width * fraction)
-                                    }
-                            }
-                            .frame(width: 100, height: 6)
-                            Text(duration.shortFormatted)
-                                .font(.caption)
-                                .monospacedDigit()
-                                .foregroundStyle(.secondary)
-                                .frame(width: 50, alignment: .trailing)
-                            Text(String(format: "%.0f%%", fraction * 100))
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                                .frame(width: 36, alignment: .trailing)
-                        }
-                    }
+                    ProjectBreakdownSection(viewModel: viewModel)
                 }
                 .padding(20)
             }
@@ -122,101 +58,7 @@ struct OverviewView: View {
     }
 }
 
-// MARK: - Quick start search field
-
-private struct QuickStartSearchField: View {
-    @Binding var text: String
-
-    var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "magnifyingglass")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
-            TextField("Search tasks…", text: $text)
-                .textFieldStyle(.plain)
-                .font(.subheadline)
-            if !text.isEmpty {
-                Button { text = "" } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 6))
-    }
-}
-
-// MARK: - Quick start row
-
-private struct QuickStartRow: View {
-    let task: Task
-    let isActive: Bool
-    let action: () -> Void
-
-    @Environment(AppState.self) private var appState
-
-    private var todayDuration: TimeInterval {
-        let start = Calendar.current.startOfDay(for: .now)
-        return task.timeEntries
-            .filter { $0.startDate >= start }
-            .reduce(0) { $0 + $1.duration }
-    }
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 10) {
-                Image(systemName: isActive ? "stop.circle.fill" : "play.circle")
-                    .font(.title3)
-                    .foregroundStyle(isActive ? AnyShapeStyle(.red) : AnyShapeStyle(.secondary))
-
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(task.name)
-                        .font(.subheadline)
-                        .foregroundStyle(.primary)
-                        .lineLimit(1)
-                    if let projectName = task.project?.name {
-                        Text(projectName)
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                            .lineLimit(1)
-                    }
-                }
-
-                Spacer()
-
-                if isActive {
-                    let _ = appState.tick
-                    Text(appState.activeEntry?.duration.timerFormatted ?? "")
-                        .font(.caption)
-                        .monospacedDigit()
-                        .foregroundStyle(.secondary)
-                } else if todayDuration > 0 {
-                    Text(todayDuration.shortFormatted)
-                        .font(.caption)
-                        .monospacedDigit()
-                        .foregroundStyle(.tertiary)
-                }
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(
-                isActive
-                    ? AnyShapeStyle(Color.accentColor.opacity(0.1))
-                    : AnyShapeStyle(.quaternary.opacity(0.4)),
-                in: RoundedRectangle(cornerRadius: 8)
-            )
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-// MARK: - Summary card
-
-private struct SummaryCard: View {
+private struct OverviewSummaryCard: View {
     let label: String
     let value: String
     let sub: String
