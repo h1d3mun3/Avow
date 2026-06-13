@@ -1,38 +1,15 @@
 import SwiftUI
-import SwiftData
 
 struct ProjectDetailView: View {
-    let project: Project
-
-    @Environment(Repositories.self) private var repositories
+    @State private var viewModel: ProjectDetailViewModel
     @State private var newTaskName = ""
     @State private var selectedTask: Task?
 
-    private var activeTasks: [Task] {
-        project.tasks
-            .filter { $0.status == .active }
-            .sorted { $0.name < $1.name }
-    }
-
-    private var completedTasks: [Task] {
-        project.tasks
-            .filter { $0.status == .completed }
-            .sorted { $0.name < $1.name }
-    }
-
-    private var totalDuration: TimeInterval {
-        project.tasks
-            .flatMap(\.timeEntries)
-            .reduce(0.0) { $0 + $1.duration }
-    }
-
-    private var thisWeekDuration: TimeInterval {
-        let calendar = Calendar.current
-        let startOfWeek = calendar.dateInterval(of: .weekOfYear, for: .now)?.start ?? .now
-        return project.tasks
-            .flatMap(\.timeEntries)
-            .filter { $0.startDate >= startOfWeek }
-            .reduce(0.0) { $0 + $1.duration }
+    init(project: Project, taskRepository: any TaskRepository) {
+        _viewModel = State(initialValue: ProjectDetailViewModel(
+            project: project,
+            taskRepository: taskRepository
+        ))
     }
 
     var body: some View {
@@ -43,19 +20,18 @@ struct ProjectDetailView: View {
                 timeEntryPanel(for: task)
             }
         }
-        .navigationTitle(project.name)
+        .navigationTitle(viewModel.projectName)
     }
 
     // MARK: - Left panel
 
     private var taskListPanel: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Fixed header: summary cards + add task field
             VStack(alignment: .leading, spacing: 20) {
                 HStack(spacing: 12) {
-                    SummaryCard(label: "Total tracked", value: totalDuration.shortFormatted)
-                    SummaryCard(label: "This week", value: thisWeekDuration.shortFormatted)
-                    SummaryCard(label: "Active tasks", value: "\(activeTasks.count)")
+                    SummaryCard(label: "Total tracked", value: viewModel.totalDuration.shortFormatted)
+                    SummaryCard(label: "This week", value: viewModel.thisWeekDuration.shortFormatted)
+                    SummaryCard(label: "Active tasks", value: "\(viewModel.activeTasks.count)")
                 }
                 HStack {
                     TextField("New task name…", text: $newTaskName)
@@ -69,8 +45,7 @@ struct ProjectDetailView: View {
 
             Divider()
 
-            // Content: task list or empty state
-            if project.tasks.isEmpty {
+            if !viewModel.hasTasks {
                 ContentUnavailableView(
                     "No tasks yet",
                     systemImage: "checklist",
@@ -80,47 +55,45 @@ struct ProjectDetailView: View {
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
-                        if !activeTasks.isEmpty {
+                        if !viewModel.activeTasks.isEmpty {
                             Text("Active tasks")
                                 .font(.subheadline)
                                 .fontWeight(.medium)
                                 .foregroundStyle(.secondary)
 
-                            ForEach(activeTasks) { task in
+                            ForEach(viewModel.activeTasks) { task in
                                 TaskDetailRow(
                                     task: task,
                                     isSelected: selectedTask?.id == task.id,
-                                    onToggle: {
-                                        try? repositories.task.updateStatus(task, to: .completed)
-                                    },
+                                    onToggle: { try? viewModel.toggleStatus(task) },
                                     onSelect: { selectedTask = task },
                                     onDelete: {
                                         if selectedTask?.id == task.id { selectedTask = nil }
-                                        try? repositories.task.delete(task)
-                                    }
+                                        try? viewModel.delete(task)
+                                    },
+                                    onRename: { try? viewModel.rename(task, to: $0) }
                                 )
                             }
                         }
 
-                        if !completedTasks.isEmpty {
+                        if !viewModel.completedTasks.isEmpty {
                             Text("Completed")
                                 .font(.subheadline)
                                 .fontWeight(.medium)
                                 .foregroundStyle(.tertiary)
 
-                            ForEach(completedTasks) { task in
+                            ForEach(viewModel.completedTasks) { task in
                                 TaskDetailRow(
                                     task: task,
                                     isCompleted: true,
                                     isSelected: selectedTask?.id == task.id,
-                                    onToggle: {
-                                        try? repositories.task.updateStatus(task, to: .active)
-                                    },
+                                    onToggle: { try? viewModel.toggleStatus(task) },
                                     onSelect: { selectedTask = task },
                                     onDelete: {
                                         if selectedTask?.id == task.id { selectedTask = nil }
-                                        try? repositories.task.delete(task)
-                                    }
+                                        try? viewModel.delete(task)
+                                    },
+                                    onRename: { try? viewModel.rename(task, to: $0) }
                                 )
                             }
                         }
@@ -135,7 +108,6 @@ struct ProjectDetailView: View {
 
     private func timeEntryPanel(for task: Task) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Header
             HStack {
                 Text(task.name)
                     .font(.headline)
@@ -154,7 +126,6 @@ struct ProjectDetailView: View {
 
             Divider()
 
-            // Entries
             let entries = task.timeEntries.sorted { $0.startDate > $1.startDate }
             if entries.isEmpty {
                 ContentUnavailableView(
@@ -182,7 +153,7 @@ struct ProjectDetailView: View {
     private func addTask() {
         let name = newTaskName.trimmingCharacters(in: .whitespaces)
         guard !name.isEmpty else { return }
-        try? repositories.task.add(named: name, to: project)
+        try? viewModel.addTask(named: name)
         newTaskName = ""
     }
 }
@@ -218,8 +189,8 @@ private struct TaskDetailRow: View {
     let onToggle: () -> Void
     var onSelect: () -> Void = {}
     var onDelete: (() -> Void)? = nil
+    var onRename: (String) -> Void = { _ in }
 
-    @Environment(Repositories.self) private var repositories
     @State private var isRenaming = false
     @State private var renameText = ""
     @State private var showDeleteConfirmation = false
@@ -294,9 +265,7 @@ private struct TaskDetailRow: View {
 
     private func commitRename() {
         let trimmed = renameText.trimmingCharacters(in: .whitespaces)
-        if !trimmed.isEmpty {
-            try? repositories.task.rename(task, to: trimmed)
-        }
+        if !trimmed.isEmpty { onRename(trimmed) }
         isRenaming = false
         renameText = ""
     }
