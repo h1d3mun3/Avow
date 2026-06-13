@@ -64,11 +64,7 @@ struct TimeEntryRow: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 8))
-        .alert("Error", isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
-            Button("OK") { errorMessage = nil }
-        } message: {
-            Text(errorMessage ?? "")
-        }
+        .errorAlert($errorMessage)
         .popover(isPresented: $isEditing) {
             VStack(alignment: .leading, spacing: 16) {
                 Text("Edit Record")

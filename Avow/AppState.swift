@@ -27,9 +27,11 @@ final class AppState {
     /// Start tracking a task. Stops any currently running entry first.
     func startTracking(task: Task) {
         if let current = activeEntry {
+            // Fire-and-forget: AppState has no error channel; a persistence failure is intentionally swallowed.
             try? timeEntries.stop(current)
         }
 
+        // Fire-and-forget: AppState has no error channel; a persistence failure is intentionally swallowed.
         activeEntry = try? timeEntries.start(task: task)
 
         startDisplayTimer()
@@ -38,6 +40,7 @@ final class AppState {
     /// Stop the currently running entry.
     func stopTracking() {
         guard let entry = activeEntry else { return }
+        // Fire-and-forget: AppState has no error channel; a persistence failure is intentionally swallowed.
         try? timeEntries.stop(entry)
         activeEntry = nil
 

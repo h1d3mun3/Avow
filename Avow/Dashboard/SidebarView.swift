@@ -163,11 +163,7 @@ struct SidebarView: View {
         } message: {
             Text("All tasks and time records in this project will be permanently deleted.")
         }
-        .alert("Error", isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
-            Button("OK") { errorMessage = nil }
-        } message: {
-            Text(errorMessage ?? "")
-        }
+        .errorAlert($errorMessage)
     }
 
     private func moveProjects(from source: IndexSet, to destination: Int) {
