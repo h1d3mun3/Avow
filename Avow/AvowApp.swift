@@ -9,6 +9,10 @@ import SwiftUI
 import SwiftData
 import AppKit
 
+// MARK: - Window identifiers
+
+enum WindowID { static let dashboard = "dashboard"; static let dashboardTitle = "Dashboard" }
+
 // MARK: - App Delegate
 
 class AppDelegate: NSObject, NSApplicationDelegate {
@@ -16,7 +20,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
         if !hasVisibleWindows {
-            openWindow?("dashboard")
+            openWindow?(WindowID.dashboard)
         }
         return true
     }
@@ -71,7 +75,7 @@ struct AvowApp: App {
 
         // MARK: - Dashboard window
 
-        Window("Dashboard", id: "dashboard") {
+        Window(WindowID.dashboardTitle, id: WindowID.dashboard) {
             DashboardView()
                 .environment(appState)
                 .environment(repositories)
@@ -94,7 +98,7 @@ private struct DashboardWindowOpener: View {
         Color.clear
             .onAppear {
                 appDelegate.openWindow = { id in openWindow(id: id) }
-                openWindow(id: "dashboard")
+                openWindow(id: WindowID.dashboard)
             }
     }
 }
