@@ -1,11 +1,11 @@
 import SwiftUI
-import SwiftData
 
 struct NewProjectSheet: View {
-    @Environment(\.modelContext) private var modelContext
+    @Environment(Repositories.self) private var repositories
     @Environment(\.dismiss) private var dismiss
 
     @State private var name = ""
+    @State private var errorMessage: String?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -59,15 +59,21 @@ struct NewProjectSheet: View {
             .padding()
         }
         .frame(width: 320, height: 180)
+        .alert("Error", isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
+            Button("OK") { errorMessage = nil }
+        } message: {
+            Text(errorMessage ?? "")
+        }
     }
 
     private func createProject() {
         let trimmed = name.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return }
-        let count = (try? modelContext.fetchCount(FetchDescriptor<Project>())) ?? 0
-        let project = Project(name: trimmed, sortOrder: count)
-        modelContext.insert(project)
-        try? modelContext.save()
-        dismiss()
+        do {
+            _ = try repositories.project.create(named: trimmed)
+            dismiss()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 }

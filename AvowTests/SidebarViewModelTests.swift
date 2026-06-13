@@ -11,7 +11,10 @@ final class MockProjectRepository: ProjectRepository {
     var deletedProjects: [Project] = []
     var renamedProjects: [(Project, String)] = []
     var reorderedBatches: [[Project]] = []
+    var createdNames: [String] = []
 
+    func create(named name: String) throws -> Project { createdNames.append(name); return Project(name: name) }
+    func allProjectsSortedByName() throws -> [Project] { [] }
     func archive(_ project: Project) throws { archivedProjects.append(project) }
     func unarchive(_ project: Project) throws { unarchivedProjects.append(project) }
     func delete(_ project: Project) throws { deletedProjects.append(project) }

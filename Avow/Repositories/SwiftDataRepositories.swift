@@ -4,6 +4,18 @@ import SwiftData
 struct SwiftDataProjectRepository: ProjectRepository {
     let context: ModelContext
 
+    func create(named name: String) throws -> Project {
+        let count = (try? context.fetchCount(FetchDescriptor<Project>())) ?? 0
+        let project = Project(name: name, sortOrder: count)
+        context.insert(project)
+        try context.save()
+        return project
+    }
+
+    func allProjectsSortedByName() throws -> [Project] {
+        try context.fetch(FetchDescriptor<Project>(sortBy: [SortDescriptor(\Project.name)]))
+    }
+
     func archive(_ project: Project) throws {
         project.isArchived = true
         project.updatedAt = .now
