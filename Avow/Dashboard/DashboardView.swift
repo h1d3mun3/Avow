@@ -211,7 +211,8 @@ struct DashboardView: View {
         case .calendar:
             CalendarView()
         case .project(let project):
-            ProjectDetailView(project: project)
+            ProjectDetailView(project: project, taskRepository: repositories.task)
+                .id(project.id)
         }
     }
 }
