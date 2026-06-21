@@ -17,7 +17,10 @@ struct ProjectDetailView: View {
             TaskListPanel(viewModel: viewModel, selectedTask: $selectedTask, newTaskName: $newTaskName)
             if let task = selectedTask {
                 Divider()
+                // .id ties the panel's @Query filter to the selected task,
+                // rebuilding it when the selection changes.
                 TaskTimeEntryPanel(task: task, onClose: { selectedTask = nil })
+                    .id(task.id)
             }
         }
         .navigationTitle(viewModel.projectName)

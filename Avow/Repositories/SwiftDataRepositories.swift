@@ -84,6 +84,14 @@ struct SwiftDataTimeEntryRepository: TimeEntryRepository {
         return entry
     }
 
+    func add(task: Task, start: Date, end: Date) throws -> TimeEntry {
+        let entry = TimeEntry(startDate: start, task: task)
+        entry.endDate = end
+        context.insert(entry)
+        try context.save()
+        return entry
+    }
+
     func stop(_ entry: TimeEntry) throws {
         entry.stop()
         try context.save()
