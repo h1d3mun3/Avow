@@ -125,6 +125,35 @@ struct SwiftDataTimeEntryRepositoryTests {
         #expect(entry.endDate == nil)
     }
 
+    @Test func add_insertsCompletedEntry() throws {
+        let (repo, context) = try makeRepository()
+        let task = makeTask(in: context)
+        let start = Date(timeIntervalSinceReferenceDate: 0)
+        let end = Date(timeIntervalSinceReferenceDate: 3600)
+
+        let entry = try repo.add(task: task, start: start, end: end)
+
+        #expect(entry.startDate == start)
+        #expect(entry.endDate == end)
+        #expect(entry.task?.id == task.id)
+
+        let persisted = try context.fetch(FetchDescriptor<TimeEntry>())
+        #expect(persisted.contains { $0.id == entry.id })
+    }
+
+    @Test func add_entryIsLinkedToTask() throws {
+        let (repo, context) = try makeRepository()
+        let task = makeTask(in: context)
+
+        let entry = try repo.add(
+            task: task,
+            start: Date(timeIntervalSinceReferenceDate: 0),
+            end: Date(timeIntervalSinceReferenceDate: 60)
+        )
+
+        #expect(task.timeEntries.contains { $0.id == entry.id })
+    }
+
     @Test func delete_removesEntry() throws {
         let (repo, context) = try makeRepository()
         let entry = makeEntry(in: context)
