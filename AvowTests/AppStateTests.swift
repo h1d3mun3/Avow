@@ -24,6 +24,12 @@ final class FakeTimeEntryRepository: TimeEntryRepository {
         return e
     }
 
+    func add(task: Task, start: Date, end: Date) throws -> TimeEntry {
+        let e = TimeEntry(startDate: start, task: task)
+        e.endDate = end
+        return e
+    }
+
     func stop(_ entry: TimeEntry) throws {
         if let stopError { throw stopError }
         entry.stop()
