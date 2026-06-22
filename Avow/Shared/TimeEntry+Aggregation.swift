@@ -25,3 +25,15 @@ extension Task {
         timeEntries.totalDuration
     }
 }
+
+extension Facet {
+    /// All time entries across the tasks carrying this facet.
+    var allTimeEntries: [TimeEntry] {
+        tasks.flatMap(\.timeEntries)
+    }
+
+    /// Total tracked duration across all tasks carrying this facet.
+    var totalDuration: TimeInterval {
+        allTimeEntries.totalDuration
+    }
+}
