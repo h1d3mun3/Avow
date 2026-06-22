@@ -88,4 +88,35 @@ struct TimeEntryAggregationTests {
 
         #expect(task.totalDuration == 5400)
     }
+
+    // MARK: - Facet.totalDuration
+
+    @Test func facetTotalDuration_sumsAcrossTasksCarryingIt() throws {
+        let context = try makeInMemoryContext()
+        let project = Project(name: "P")
+        context.insert(project)
+        let taskA = Task(name: "A", project: project)
+        let taskB = Task(name: "B", project: project)
+        let other = Task(name: "Other", project: project)
+        [taskA, taskB, other].forEach { context.insert($0) }
+        let facet = Facet(name: "bullshit-job")
+        context.insert(facet)
+        taskA.facets = [facet]
+        taskB.facets = [facet]
+
+        _ = finishedEntry(start: 0, end: 3600, task: taskA, context: context)
+        _ = finishedEntry(start: 0, end: 1800, task: taskB, context: context)
+        // Entry on a task without the facet must not count toward the facet total.
+        _ = finishedEntry(start: 0, end: 9000, task: other, context: context)
+
+        #expect(facet.totalDuration == 5400)
+    }
+
+    @Test func facetTotalDuration_noTasksIsZero() throws {
+        let context = try makeInMemoryContext()
+        let facet = Facet(name: "empty")
+        context.insert(facet)
+
+        #expect(facet.totalDuration == 0)
+    }
 }

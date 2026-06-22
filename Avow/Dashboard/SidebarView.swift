@@ -8,6 +8,9 @@ struct SidebarView: View {
     @Query(sort: \Project.sortOrder)
     private var projects: [Project]
 
+    @Query(sort: \Facet.name)
+    private var facets: [Facet]
+
     @State private var viewModel: SidebarViewModel
 
     @Binding var selection: DashboardView.SidebarItem?
@@ -18,6 +21,7 @@ struct SidebarView: View {
     @State private var renameText: String = ""
     @FocusState private var renameFieldFocused: Bool
     @State private var showArchived = false
+    @State private var showFacets = true
     @State private var projectToDelete: Project?
     @State private var errorMessage: String?
 
@@ -75,6 +79,23 @@ struct SidebarView: View {
                     }
                 }
                 .onMove(perform: moveProjects)
+            }
+
+            if !facets.isEmpty {
+                Section("Facets", isExpanded: $showFacets) {
+                    ForEach(facets) { facet in
+                        NavigationLink(value: DashboardView.SidebarItem.facet(facet)) {
+                            HStack(spacing: 8) {
+                                Text(facet.name)
+                                Spacer()
+                                Text(facet.totalDuration.shortFormatted)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .monospacedDigit()
+                            }
+                        }
+                    }
+                }
             }
 
             if !viewModel.archivedProjects.isEmpty {
