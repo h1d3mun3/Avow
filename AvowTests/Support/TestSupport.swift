@@ -4,7 +4,7 @@ import SwiftData
 
 /// A fresh in-memory SwiftData context for tests.
 func makeInMemoryContext() throws -> ModelContext {
-    let schema = Schema([Project.self, Task.self, TimeEntry.self])
+    let schema = Schema([Project.self, Task.self, TimeEntry.self, Facet.self])
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
     let container = try ModelContainer(for: schema, configurations: [config])
     return ModelContext(container)

@@ -14,3 +14,25 @@ struct DayBreakdown {
             .sorted { $0.duration > $1.duration }
     }
 }
+
+/// Per-facet time totals for a day's entries, sorted by duration descending.
+///
+/// A task may carry several facets, so an entry's duration is counted toward each of
+/// its task's facets — totals may therefore exceed the day total, since each facet
+/// answers an independent "how much time on X?" question. Entries whose task has no
+/// facet are omitted (unfaceted time is intentionally not surfaced).
+struct FacetBreakdown {
+    let items: [(name: String, duration: TimeInterval)]
+    init(entries: [TimeEntry]) {
+        var totals: [UUID: (name: String, duration: TimeInterval)] = [:]
+        for entry in entries {
+            guard let facets = entry.task?.facets, !facets.isEmpty else { continue }
+            for facet in facets {
+                totals[facet.id, default: (name: facet.name, duration: 0)].duration += entry.duration
+            }
+        }
+        self.items = totals.values
+            .map { (name: $0.name, duration: $0.duration) }
+            .sorted { $0.duration > $1.duration }
+    }
+}

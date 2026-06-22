@@ -21,6 +21,8 @@ final class Task {
     @Relationship(deleteRule: .cascade, inverse: \TimeEntry.task)
     var timeEntries: [TimeEntry]
 
+    var facets: [Facet]
+
     init(
         name: String,
         project: Project
@@ -32,5 +34,6 @@ final class Task {
         self.updatedAt = .now
         self.project = project
         self.timeEntries = []
+        self.facets = []
     }
 }

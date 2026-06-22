@@ -38,6 +38,7 @@ struct AvowApp: App {
             Project.self,
             Task.self,
             TimeEntry.self,
+            Facet.self,
         ])
         let config = ModelConfiguration(
             "Avow",
