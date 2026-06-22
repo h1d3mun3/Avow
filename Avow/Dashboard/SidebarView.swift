@@ -23,6 +23,8 @@ struct SidebarView: View {
     @State private var showArchived = false
     @State private var showFacets = true
     @State private var projectToDelete: Project?
+    @State private var renamingFacet: Facet?
+    @State private var facetToDelete: Facet?
     @State private var errorMessage: String?
 
     init(selection: Binding<DashboardView.SidebarItem?>, projectRepository: any ProjectRepository) {
@@ -86,12 +88,31 @@ struct SidebarView: View {
                     ForEach(facets) { facet in
                         NavigationLink(value: DashboardView.SidebarItem.facet(facet)) {
                             HStack(spacing: 8) {
-                                Text(facet.name)
-                                Spacer()
-                                Text(facet.totalDuration.shortFormatted)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .monospacedDigit()
+                                if renamingFacet?.id == facet.id {
+                                    TextField("", text: $renameText)
+                                        .textFieldStyle(.plain)
+                                        .focused($renameFieldFocused)
+                                        .onSubmit { commitFacetRename() }
+                                        .onExitCommand { renamingFacet = nil }
+                                } else {
+                                    Text(facet.name)
+                                    Spacer()
+                                    Text(facet.totalDuration.shortFormatted)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .monospacedDigit()
+                                }
+                            }
+                        }
+                        .contextMenu {
+                            Button("Rename") {
+                                renamingFacet = facet
+                                renameText = facet.name
+                                renameFieldFocused = true
+                            }
+                            Divider()
+                            Button("Delete…", role: .destructive) {
+                                facetToDelete = facet
                             }
                         }
                     }
@@ -184,6 +205,23 @@ struct SidebarView: View {
         } message: {
             Text("All tasks and time records in this project will be permanently deleted.")
         }
+        .confirmationDialog(
+            "Delete \"\(facetToDelete?.name ?? "")\"?",
+            isPresented: Binding(get: { facetToDelete != nil }, set: { if !$0 { facetToDelete = nil } }),
+            titleVisibility: .visible
+        ) {
+            Button("Delete Facet", role: .destructive) {
+                if let facet = facetToDelete {
+                    if case .facet(let selected) = selection, selected.id == facet.id {
+                        selection = .overview
+                    }
+                    do { try repositories.facet.delete(facet) } catch { errorMessage = error.localizedDescription }
+                }
+                facetToDelete = nil
+            }
+        } message: {
+            Text("This facet will be removed from every task that carries it. Time records are not affected.")
+        }
         .errorAlert($errorMessage)
     }
 
@@ -196,6 +234,14 @@ struct SidebarView: View {
             do { try viewModel.commitRename(project, to: renameText) } catch { errorMessage = error.localizedDescription }
         }
         renamingProject = nil
+        renameText = ""
+    }
+
+    private func commitFacetRename() {
+        if let facet = renamingFacet {
+            do { try repositories.facet.rename(facet, to: renameText) } catch { errorMessage = error.localizedDescription }
+        }
+        renamingFacet = nil
         renameText = ""
     }
 }
