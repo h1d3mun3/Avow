@@ -14,12 +14,3 @@ struct DayBreakdown {
             .sorted { $0.duration > $1.duration }
     }
 }
-
-/// Groups entries by their task (nil-task entries collapse into one group), sorted by task name.
-func groupEntriesByTask(_ entries: [TimeEntry]) -> [(task: Task?, entries: [TimeEntry])] {
-    var groups: [UUID?: [TimeEntry]] = [:]
-    for entry in entries { groups[entry.task?.id, default: []].append(entry) }
-    return groups
-        .map { (task: $0.value.first?.task, entries: $0.value) }
-        .sorted { ($0.task?.name ?? "") < ($1.task?.name ?? "") }
-}
