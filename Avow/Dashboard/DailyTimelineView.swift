@@ -37,9 +37,9 @@ struct DailyTimelineView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
-                        ForEach(groupEntriesByTask(entries), id: \.task?.id) { group in
-                            TaskEntryGroup(task: group.task, entries: group.entries)
+                    VStack(alignment: .leading, spacing: 8) {
+                        ForEach(entries) { entry in
+                            TimeEntryRow(entry: entry)
                         }
                     }
                     .padding(20)
@@ -60,45 +60,6 @@ struct DailyTimelineView: View {
                     .monospacedDigit()
             }
             Spacer()
-        }
-    }
-}
-
-// MARK: - Task group
-
-private struct TaskEntryGroup: View {
-    let task: Task?
-    let entries: [TimeEntry]
-
-    private var groupDuration: TimeInterval {
-        entries.totalDuration
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(task?.name ?? "Unknown task")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                    if let projectName = task?.project?.name {
-                        Text(projectName)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                Spacer()
-                Text(groupDuration.shortFormatted)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .monospacedDigit()
-            }
-
-            ForEach(entries) { entry in
-                TimeEntryRow(entry: entry)
-            }
-
-            Divider()
         }
     }
 }

@@ -13,6 +13,17 @@ struct TimeEntryRow: View {
     var body: some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(entry.task?.name ?? "Unknown task")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                    if let projectName = entry.task?.project?.name {
+                        Text(projectName)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
                 Label(
                     entry.startDate.formatted(date: .abbreviated, time: .shortened),
                     systemImage: "play.circle"
