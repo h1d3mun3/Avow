@@ -5,11 +5,11 @@ struct CalendarView: View {
     @State private var selectedDate: Date? = Calendar.current.startOfDay(for: .now)
 
     var body: some View {
-        HStack(spacing: 0) {
+        HSplitView {
             calendarPanel
             if let date = selectedDate {
-                Divider()
                 DailyTimelineView(date: date)
+                    .frame(minWidth: 320)
             }
         }
         .navigationTitle("Calendar")
@@ -29,7 +29,7 @@ struct CalendarView: View {
             }
             .padding(20)
         }
-        .frame(minWidth: 200, maxWidth: 220)
+        .frame(minWidth: 200, idealWidth: 220, maxWidth: 360)
     }
 }
 
