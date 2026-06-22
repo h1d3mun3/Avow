@@ -74,6 +74,44 @@ struct SwiftDataTaskRepository: TaskRepository {
     }
 }
 
+struct SwiftDataFacetRepository: FacetRepository {
+    let context: ModelContext
+
+    func allFacetsSortedByName() throws -> [Facet] {
+        try context.fetch(FetchDescriptor<Facet>(sortBy: [SortDescriptor(\Facet.name)]))
+    }
+
+    func findOrCreate(named name: String) throws -> Facet {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let existing = try context.fetch(
+            FetchDescriptor<Facet>(predicate: #Predicate { $0.name == trimmed })
+        ).first
+        if let existing { return existing }
+        let facet = Facet(name: trimmed)
+        context.insert(facet)
+        try context.save()
+        return facet
+    }
+
+    func attach(_ facet: Facet, to task: Task) throws {
+        guard !task.facets.contains(where: { $0.id == facet.id }) else { return }
+        task.facets.append(facet)
+        task.updatedAt = .now
+        try context.save()
+    }
+
+    func detach(_ facet: Facet, from task: Task) throws {
+        task.facets.removeAll { $0.id == facet.id }
+        task.updatedAt = .now
+        try context.save()
+    }
+
+    func delete(_ facet: Facet) throws {
+        context.delete(facet)
+        try context.save()
+    }
+}
+
 struct SwiftDataTimeEntryRepository: TimeEntryRepository {
     let context: ModelContext
 
