@@ -12,6 +12,7 @@ struct TaskDetailRow: View {
     @State private var isRenaming = false
     @State private var renameText = ""
     @State private var showDeleteConfirmation = false
+    @State private var showFacetPicker = false
     @FocusState private var fieldFocused: Bool
 
     private var taskDuration: TimeInterval {
@@ -35,10 +36,19 @@ struct TaskDetailRow: View {
                     .onSubmit { commitRename() }
                     .onExitCommand { isRenaming = false }
             } else {
-                Text(task.name)
-                    .font(.subheadline)
-                    .strikethrough(isCompleted)
-                    .foregroundStyle(isCompleted ? .secondary : .primary)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(task.name)
+                        .font(.subheadline)
+                        .strikethrough(isCompleted)
+                        .foregroundStyle(isCompleted ? .secondary : .primary)
+
+                    if !task.facets.isEmpty {
+                        Text(task.facets.map(\.name).sorted().joined(separator: " · "))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
 
                 Spacer()
 
@@ -64,10 +74,16 @@ struct TaskDetailRow: View {
                 renameText = task.name
                 fieldFocused = true
             }
+            Button("Facets…") {
+                showFacetPicker = true
+            }
             Divider()
             Button("Delete…", role: .destructive) {
                 showDeleteConfirmation = true
             }
+        }
+        .popover(isPresented: $showFacetPicker) {
+            FacetPicker(task: task)
         }
         .confirmationDialog(
             "Delete \"\(task.name)\"?",
