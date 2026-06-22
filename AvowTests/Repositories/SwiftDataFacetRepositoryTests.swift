@@ -47,6 +47,54 @@ struct SwiftDataFacetRepositoryTests {
         #expect(facet.name == "deep-work")
     }
 
+    @Test func rename_updatesFacetName() throws {
+        let (repo, _) = try makeRepository()
+        let facet = try repo.findOrCreate(named: "MTG")
+
+        try repo.rename(facet, to: "Meetings")
+
+        #expect(facet.name == "Meetings")
+    }
+
+    @Test func rename_trimsWhitespace() throws {
+        let (repo, _) = try makeRepository()
+        let facet = try repo.findOrCreate(named: "MTG")
+
+        try repo.rename(facet, to: "  Meetings  ")
+
+        #expect(facet.name == "Meetings")
+    }
+
+    @Test func rename_emptyNameIsNoOp() throws {
+        let (repo, _) = try makeRepository()
+        let facet = try repo.findOrCreate(named: "MTG")
+
+        try repo.rename(facet, to: "   ")
+
+        #expect(facet.name == "MTG")
+    }
+
+    @Test func rename_toExistingNameThrows() throws {
+        let (repo, _) = try makeRepository()
+        _ = try repo.findOrCreate(named: "Meetings")
+        let facet = try repo.findOrCreate(named: "MTG")
+
+        #expect(throws: FacetRepositoryError.self) {
+            try repo.rename(facet, to: "Meetings")
+        }
+        #expect(facet.name == "MTG")
+    }
+
+    @Test func rename_toSameNameIsNoOp() throws {
+        let (repo, context) = try makeRepository()
+        let facet = try repo.findOrCreate(named: "MTG")
+
+        try repo.rename(facet, to: "MTG")
+
+        #expect(facet.name == "MTG")
+        #expect(try context.fetch(FetchDescriptor<Facet>()).count == 1)
+    }
+
     @Test func attach_addsFacetToTask() throws {
         let (repo, context) = try makeRepository()
         let task = makeTask(in: context)

@@ -93,6 +93,19 @@ struct SwiftDataFacetRepository: FacetRepository {
         return facet
     }
 
+    func rename(_ facet: Facet, to name: String) throws {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, trimmed != facet.name else { return }
+        let existing = try context.fetch(
+            FetchDescriptor<Facet>(predicate: #Predicate { $0.name == trimmed })
+        ).first
+        if let existing, existing.id != facet.id {
+            throw FacetRepositoryError.duplicateName(trimmed)
+        }
+        facet.name = trimmed
+        try context.save()
+    }
+
     func attach(_ facet: Facet, to task: Task) throws {
         guard !task.facets.contains(where: { $0.id == facet.id }) else { return }
         task.facets.append(facet)
