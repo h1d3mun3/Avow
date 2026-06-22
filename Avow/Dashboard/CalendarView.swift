@@ -25,6 +25,7 @@ struct CalendarView: View {
 
                 if let date = selectedDate {
                     DayProjectBreakdown(date: date)
+                    DayFacetBreakdown(date: date)
                 }
             }
             .padding(20)
@@ -79,6 +80,49 @@ private struct DayProjectBreakdown: View {
                             .monospacedDigit()
                             .foregroundStyle(.secondary)
                             .frame(width: 36, alignment: .trailing)
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Facet breakdown for a single day
+
+private struct DayFacetBreakdown: View {
+    let date: Date
+
+    @Query private var entries: [TimeEntry]
+
+    init(date: Date) {
+        self.date = date
+        let (start, end) = DateWindows().dayBounds(for: date)
+        _entries = Query(filter: #Predicate<TimeEntry> { entry in
+            entry.startDate >= start && entry.startDate < end
+        })
+    }
+
+    var body: some View {
+        let breakdown = FacetBreakdown(entries: entries)
+        // Absolute time only, sorted descending; unfaceted time and the whole
+        // section are omitted when there is nothing to show.
+        if !breakdown.items.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("By facet")
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundStyle(.secondary)
+
+                ForEach(breakdown.items, id: \.name) { item in
+                    HStack(spacing: 6) {
+                        Text(item.name)
+                            .font(.caption)
+                            .lineLimit(1)
+                        Spacer()
+                        Text(item.duration.shortFormatted)
+                            .font(.caption)
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
                     }
                 }
             }
