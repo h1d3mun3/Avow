@@ -82,7 +82,7 @@ struct TimeEntryRow: View {
                     .font(.headline)
                 DatePicker("Start", selection: $editStart, displayedComponents: [.date, .hourAndMinute])
                 if entry.endDate != nil {
-                    DatePicker("End", selection: $editEnd, in: editStart..., displayedComponents: [.date, .hourAndMinute])
+                    DatePicker("End", selection: $editEnd, displayedComponents: [.date, .hourAndMinute])
                 }
                 HStack {
                     Button("Cancel") { isEditing = false }
