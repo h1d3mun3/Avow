@@ -6,6 +6,7 @@ import AppKit
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(Repositories.self) private var repositories
+    @Environment(HotkeySettings.self) private var hotkeySettings
 
     @State private var showingResetConfirmation = false
     @State private var statusMessage: String?
@@ -13,8 +14,26 @@ struct SettingsView: View {
     @State private var pendingImportURL: URL?
 
     var body: some View {
-        ScrollView {
+        @Bindable var hotkeySettings = hotkeySettings
+
+        return ScrollView {
             VStack(alignment: .leading, spacing: 24) {
+                    // Shortcuts
+                    SettingsSection(title: "Shortcuts") {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Quick panel")
+                                    .font(.subheadline)
+                                Text("Open the quick task switcher from anywhere.")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            HotkeyRecorder(preference: $hotkeySettings.preference)
+                                .frame(width: 130, height: 24)
+                        }
+                    }
+
                     // Backup & restore (JSON is a faithful round trip)
                     SettingsSection(title: "Export & import") {
                         VStack(alignment: .leading, spacing: 8) {
@@ -81,7 +100,7 @@ struct SettingsView: View {
             }
             .padding()
         }
-        .navigationTitle("Data")
+        .navigationTitle("Settings")
         .alert("Reset all data?", isPresented: $showingResetConfirmation) {
             Button("Cancel", role: .cancel) {}
             Button("Reset", role: .destructive) { resetAllData() }

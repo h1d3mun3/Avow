@@ -17,6 +17,7 @@ enum WindowID { static let dashboard = "dashboard"; static let dashboardTitle = 
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     var openWindow: ((String) -> Void)?
+    var quickPanel: QuickPanelController?
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
         if !hasVisibleWindows {
@@ -32,6 +33,7 @@ struct AvowApp: App {
     let modelContainer: ModelContainer
     let repositories: Repositories
     @State private var appState: AppState
+    @State private var hotkeySettings = HotkeySettings()
 
     init() {
         let schema = Schema([
@@ -74,6 +76,15 @@ struct AvowApp: App {
                     appState.restoreActiveEntry()
                 }
                 .background(DashboardWindowOpener(appDelegate: appDelegate))
+                .background(
+                    QuickPanelInstaller(
+                        appDelegate: appDelegate,
+                        modelContainer: modelContainer,
+                        repositories: repositories,
+                        appState: appState,
+                        hotkeySettings: hotkeySettings
+                    )
+                )
         }
         .menuBarExtraStyle(.window)
 
@@ -83,6 +94,7 @@ struct AvowApp: App {
             DashboardView()
                 .environment(appState)
                 .environment(repositories)
+                .environment(hotkeySettings)
                 .modelContainer(modelContainer)
         }
         .defaultSize(width: 900, height: 600)
@@ -103,6 +115,31 @@ private struct DashboardWindowOpener: View {
             .onAppear {
                 appDelegate.openWindow = { id in openWindow(id: id) }
                 openWindow(id: WindowID.dashboard)
+            }
+    }
+}
+
+// MARK: - Quick panel installer
+
+// Creates the global-hotkey quick panel once the SwiftUI environment (and its dependencies)
+// are available, retaining it on the AppDelegate.
+private struct QuickPanelInstaller: View {
+    let appDelegate: AppDelegate
+    let modelContainer: ModelContainer
+    let repositories: Repositories
+    let appState: AppState
+    let hotkeySettings: HotkeySettings
+
+    var body: some View {
+        Color.clear
+            .onAppear {
+                guard appDelegate.quickPanel == nil else { return }
+                appDelegate.quickPanel = QuickPanelController(
+                    modelContainer: modelContainer,
+                    repositories: repositories,
+                    appState: appState,
+                    hotkeySettings: hotkeySettings
+                )
             }
     }
 }
