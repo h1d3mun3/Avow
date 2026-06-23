@@ -8,15 +8,19 @@ struct SettingsView: View {
     @Environment(Repositories.self) private var repositories
 
     @State private var showingResetConfirmation = false
-    @State private var exportMessage: String?
+    @State private var statusMessage: String?
     @State private var errorMessage: String?
+    @State private var pendingImportURL: URL?
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                    // Export & import
+                    // Backup & restore (JSON is a faithful round trip)
                     SettingsSection(title: "Export & import") {
                         VStack(alignment: .leading, spacing: 8) {
+                            Text("Back up everything to a JSON file and restore it later.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                             HStack(spacing: 8) {
                                 Button {
                                     exportJSON()
@@ -25,18 +29,34 @@ struct SettingsView: View {
                                         .font(.caption)
                                 }
                                 Button {
-                                    exportCSV()
+                                    beginImport()
                                 } label: {
-                                    Label("Export CSV", systemImage: "arrow.down.doc")
+                                    Label("Import JSON", systemImage: "arrow.up.doc")
                                         .font(.caption)
                                 }
                             }
-                            if let message = exportMessage {
-                                Text(message)
+                        }
+                    }
+
+                    // Reports — CSV is export-only, for spreadsheet analysis
+                    SettingsSection(title: "Reports") {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Export a CSV of all time entries to analyze in a spreadsheet (Excel, Numbers).")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Button {
+                                exportCSV()
+                            } label: {
+                                Label("Export CSV", systemImage: "tablecells")
                                     .font(.caption)
-                                    .foregroundStyle(.secondary)
                             }
                         }
+                    }
+
+                    if let message = statusMessage {
+                        Text(message)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
 
                     // Danger zone
@@ -45,7 +65,7 @@ struct SettingsView: View {
                             VStack(alignment: .leading) {
                                 Text("Reset all data")
                                     .font(.subheadline)
-                                Text("Delete all projects, tasks, and time entries")
+                                Text("Delete all projects, tasks, time entries, and facets")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
@@ -66,7 +86,18 @@ struct SettingsView: View {
             Button("Cancel", role: .cancel) {}
             Button("Reset", role: .destructive) { resetAllData() }
         } message: {
-            Text("This will permanently delete all projects, tasks, and time entries. This action cannot be undone.")
+            Text("This will permanently delete all projects, tasks, time entries, and facets. This action cannot be undone.")
+        }
+        .confirmationDialog(
+            "Import data",
+            isPresented: Binding(get: { pendingImportURL != nil }, set: { if !$0 { pendingImportURL = nil } }),
+            presenting: pendingImportURL
+        ) { url in
+            Button("Merge into current data") { performImport(url, mode: .merge) }
+            Button("Replace all data", role: .destructive) { performImport(url, mode: .replace) }
+            Button("Cancel", role: .cancel) {}
+        } message: { _ in
+            Text("Merge keeps your current data and updates matching items. Replace deletes all current data first.")
         }
         .errorAlert($errorMessage)
     }
@@ -74,7 +105,7 @@ struct SettingsView: View {
     // MARK: - Actions
 
     private func exportJSON() {
-        exportMessage = nil
+        statusMessage = nil
         errorMessage = nil
         do {
             let projects = try repositories.project.allProjectsSortedByName()
@@ -87,7 +118,7 @@ struct SettingsView: View {
 
             if panel.runModal() == .OK, let url = panel.url {
                 try data.write(to: url)
-                exportMessage = "Exported successfully."
+                statusMessage = "Exported successfully."
             }
         } catch {
             errorMessage = error.localizedDescription
@@ -95,7 +126,7 @@ struct SettingsView: View {
     }
 
     private func exportCSV() {
-        exportMessage = nil
+        statusMessage = nil
         errorMessage = nil
         do {
             let projects = try repositories.project.allProjectsSortedByName()
@@ -107,8 +138,34 @@ struct SettingsView: View {
 
             if panel.runModal() == .OK, let url = panel.url {
                 try csv.write(to: url, atomically: true, encoding: .utf8)
-                exportMessage = "Exported successfully."
+                statusMessage = "Exported successfully."
             }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// Picks a JSON file to import, then defers to the Merge/Replace confirmation dialog.
+    private func beginImport() {
+        statusMessage = nil
+        errorMessage = nil
+
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.json]
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+
+        if panel.runModal() == .OK, let url = panel.url {
+            pendingImportURL = url
+        }
+    }
+
+    private func performImport(_ url: URL, mode: ImportService.Mode) {
+        statusMessage = nil
+        errorMessage = nil
+        do {
+            try ImportService(context: modelContext).importJSON(from: url, mode: mode)
+            statusMessage = "Imported successfully."
         } catch {
             errorMessage = error.localizedDescription
         }
