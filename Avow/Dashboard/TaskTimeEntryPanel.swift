@@ -84,7 +84,7 @@ struct TaskTimeEntryPanel: View {
             Text("Add Record")
                 .font(.headline)
             DatePicker("Start", selection: $newStart, displayedComponents: [.date, .hourAndMinute])
-            DatePicker("End", selection: $newEnd, in: newStart..., displayedComponents: [.date, .hourAndMinute])
+            DatePicker("End", selection: $newEnd, displayedComponents: [.date, .hourAndMinute])
             HStack {
                 Button("Cancel") { isAddingEntry = false }
                 Spacer()

@@ -136,6 +136,7 @@ struct SwiftDataTimeEntryRepository: TimeEntryRepository {
     }
 
     func add(task: Task, start: Date, end: Date) throws -> TimeEntry {
+        guard end >= start else { throw TimeEntryRepositoryError.endBeforeStart }
         let entry = TimeEntry(startDate: start, task: task)
         entry.endDate = end
         context.insert(entry)
@@ -153,9 +154,13 @@ struct SwiftDataTimeEntryRepository: TimeEntryRepository {
     }
 
     func update(_ entry: TimeEntry, start: Date, end: Date?) throws {
-        entry.startDate = start
         // Only a stopped entry can have its end edited; a running entry stays running.
-        if entry.endDate != nil {
+        let editsEnd = entry.endDate != nil
+        if editsEnd, let end, end < start {
+            throw TimeEntryRepositoryError.endBeforeStart
+        }
+        entry.startDate = start
+        if editsEnd {
             entry.endDate = end
         }
         try context.save()

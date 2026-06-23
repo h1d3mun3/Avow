@@ -115,6 +115,31 @@ struct SwiftDataTimeEntryRepositoryTests {
         #expect(entry.endDate == newEnd)
     }
 
+    @Test func update_throwsWhenEndBeforeStart() throws {
+        let (repo, context) = try makeRepository()
+        let entry = makeEntry(in: context)
+        entry.endDate = Date(timeIntervalSinceReferenceDate: 3600)
+
+        let start = Date(timeIntervalSinceReferenceDate: 1000)
+        let end = Date(timeIntervalSinceReferenceDate: 500)
+        #expect(throws: TimeEntryRepositoryError.self) {
+            try repo.update(entry, start: start, end: end)
+        }
+    }
+
+    @Test func update_allowsMovingBothTimesIntoThePast() throws {
+        let (repo, context) = try makeRepository()
+        let entry = makeEntry(in: context, startDate: Date(timeIntervalSinceReferenceDate: 100_000))
+        entry.endDate = Date(timeIntervalSinceReferenceDate: 103_600)
+
+        let newStart = Date(timeIntervalSinceReferenceDate: 0)
+        let newEnd = Date(timeIntervalSinceReferenceDate: 3600)
+        try repo.update(entry, start: newStart, end: newEnd)
+
+        #expect(entry.startDate == newStart)
+        #expect(entry.endDate == newEnd)
+    }
+
     @Test func update_stoppedEntry_canResetToRunning() throws {
         let (repo, context) = try makeRepository()
         let entry = makeEntry(in: context)
@@ -139,6 +164,28 @@ struct SwiftDataTimeEntryRepositoryTests {
 
         let persisted = try context.fetch(FetchDescriptor<TimeEntry>())
         #expect(persisted.contains { $0.id == entry.id })
+    }
+
+    @Test func add_throwsWhenEndBeforeStart() throws {
+        let (repo, context) = try makeRepository()
+        let task = makeTask(in: context)
+        let start = Date(timeIntervalSinceReferenceDate: 3600)
+        let end = Date(timeIntervalSinceReferenceDate: 0)
+
+        #expect(throws: TimeEntryRepositoryError.self) {
+            _ = try repo.add(task: task, start: start, end: end)
+        }
+    }
+
+    @Test func add_allowsEqualStartAndEnd() throws {
+        let (repo, context) = try makeRepository()
+        let task = makeTask(in: context)
+        let instant = Date(timeIntervalSinceReferenceDate: 0)
+
+        let entry = try repo.add(task: task, start: instant, end: instant)
+
+        #expect(entry.startDate == instant)
+        #expect(entry.endDate == instant)
     }
 
     @Test func add_entryIsLinkedToTask() throws {
