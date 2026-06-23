@@ -159,7 +159,7 @@ struct SidebarView: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             List(selection: $selection) {
                 NavigationLink(value: DashboardView.SidebarItem.settings) {
-                    Label("Data", systemImage: "externaldrive")
+                    Label("Settings", systemImage: "gear")
                 }
             }
             .listStyle(.sidebar)
