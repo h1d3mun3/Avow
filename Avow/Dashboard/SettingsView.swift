@@ -6,38 +6,17 @@ import AppKit
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(Repositories.self) private var repositories
-    @Environment(\.dismiss) private var dismiss
 
     @State private var showingResetConfirmation = false
     @State private var exportMessage: String?
     @State private var errorMessage: String?
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Header
-            HStack {
-                Text("Settings")
-                    .font(.headline)
-                Spacer()
-                Button {
-                    dismiss()
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-            }
-            .padding()
-
-            Divider()
-
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    // Data
-                    SettingsSection(title: "Data") {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                    // Export & import
+                    SettingsSection(title: "Export & import") {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Export & import")
-                                .font(.subheadline)
                             HStack(spacing: 8) {
                                 Button {
                                     exportJSON()
@@ -79,17 +58,10 @@ struct SettingsView: View {
                             }
                         }
                     }
-
-                    // Version
-                    Text("Avow v\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—")")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                }
-                .padding()
             }
+            .padding()
         }
-        .frame(width: 420, height: 480)
+        .navigationTitle("Data")
         .alert("Reset all data?", isPresented: $showingResetConfirmation) {
             Button("Cancel", role: .cancel) {}
             Button("Reset", role: .destructive) { resetAllData() }
