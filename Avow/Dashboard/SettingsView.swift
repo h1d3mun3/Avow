@@ -74,13 +74,16 @@ struct SettingsView: View {
     // MARK: - Actions
 
     private func exportJSON() {
+        exportMessage = nil
+        errorMessage = nil
         do {
             let projects = try repositories.project.allProjectsSortedByName()
-            let data = try ExportService().buildJSONData(from: projects)
+            let facets = try repositories.facet.allFacetsSortedByName()
+            let data = try ExportService().buildJSONData(from: projects, facets: facets)
 
             let panel = NSSavePanel()
             panel.allowedContentTypes = [.json]
-            panel.nameFieldStringValue = "avow-export-\(ISO8601DateFormatter().string(from: .now)).json"
+            panel.nameFieldStringValue = Self.exportFilename(ext: "json")
 
             if panel.runModal() == .OK, let url = panel.url {
                 try data.write(to: url)
@@ -92,13 +95,15 @@ struct SettingsView: View {
     }
 
     private func exportCSV() {
+        exportMessage = nil
+        errorMessage = nil
         do {
             let projects = try repositories.project.allProjectsSortedByName()
             let csv = ExportService().buildCSVString(from: projects)
 
             let panel = NSSavePanel()
             panel.allowedContentTypes = [.commaSeparatedText]
-            panel.nameFieldStringValue = "avow-export.csv"
+            panel.nameFieldStringValue = Self.exportFilename(ext: "csv")
 
             if panel.runModal() == .OK, let url = panel.url {
                 try csv.write(to: url, atomically: true, encoding: .utf8)
@@ -107,6 +112,15 @@ struct SettingsView: View {
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    /// A filename-safe default like `avow-export-2026-06-24-091530.json`. Avoids the colons an
+    /// ISO8601 timestamp would contain, which macOS renders as `/` in the Finder.
+    private static func exportFilename(ext: String) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd-HHmmss"
+        return "avow-export-\(formatter.string(from: .now)).\(ext)"
     }
 
     private func resetAllData() {
