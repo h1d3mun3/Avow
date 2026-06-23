@@ -8,6 +8,7 @@ struct DashboardView: View {
         case calendar
         case project(Project)
         case facet(Facet)
+        case settings
     }
 
     @State private var selection: SidebarItem? = .overview
@@ -27,6 +28,8 @@ struct DashboardView: View {
             case .facet(let facet):
                 FacetDetailView(facet: facet)
                     .id(facet.id)
+            case .settings:
+                SettingsView()
             }
         }
     }

@@ -16,7 +16,6 @@ struct SidebarView: View {
     @Binding var selection: DashboardView.SidebarItem?
 
     @State private var showingNewProject = false
-    @State private var showingSettings = false
     @State private var renamingProject: Project?
     @State private var renameText: String = ""
     @FocusState private var renameFieldFocused: Bool
@@ -157,6 +156,16 @@ struct SidebarView: View {
         .onChange(of: projects, initial: true) { _, new in
             viewModel.update(projects: new)
         }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            List(selection: $selection) {
+                NavigationLink(value: DashboardView.SidebarItem.settings) {
+                    Label("Data", systemImage: "externaldrive")
+                }
+            }
+            .listStyle(.sidebar)
+            .scrollDisabled(true)
+            .frame(height: 44)
+        }
         .frame(minWidth: 200)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -168,25 +177,8 @@ struct SidebarView: View {
                 .accessibilityLabel("New project")
             }
         }
-        .safeAreaInset(edge: .bottom) {
-            VStack(spacing: 4) {
-                Divider()
-                Button {
-                    showingSettings = true
-                } label: {
-                    Label("Settings", systemImage: "gear")
-                        .font(.caption)
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(.secondary)
-                .padding(.vertical, 8)
-            }
-        }
         .sheet(isPresented: $showingNewProject) {
             NewProjectSheet()
-        }
-        .sheet(isPresented: $showingSettings) {
-            SettingsView()
         }
         .confirmationDialog(
             "Delete \"\(projectToDelete?.name ?? "")\"?",
