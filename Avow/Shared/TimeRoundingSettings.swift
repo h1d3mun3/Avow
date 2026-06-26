@@ -13,14 +13,19 @@ final class TimeRoundingSettings {
     var roundToMinute: Bool {
         didSet {
             guard roundToMinute != oldValue else { return }
-            UserDefaults.standard.set(roundToMinute, forKey: Self.key)
+            defaults.set(roundToMinute, forKey: Self.key)
         }
     }
 
     private static let key = "summaryRounding.roundToMinute"
 
-    init() {
-        roundToMinute = UserDefaults.standard.bool(forKey: Self.key)
+    /// The store this setting is persisted in. Injectable so tests can use an
+    /// isolated suite instead of polluting the shared `.standard` defaults.
+    @ObservationIgnored private let defaults: UserDefaults
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        roundToMinute = defaults.bool(forKey: Self.key)
     }
 
     /// Rounds a standalone summary total when the option is enabled.

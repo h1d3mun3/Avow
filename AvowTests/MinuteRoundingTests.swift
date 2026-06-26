@@ -68,4 +68,40 @@ struct MinuteRoundingTests {
         // One value per input.
         #expect(parts.count == durations.count)
     }
+
+    /// The documented guarantee: the displayed running total never drifts more than
+    /// 30 seconds from reality — at *every* prefix, not just the grand total.
+    @Test(arguments: [
+        [Double]([]),
+        [0],
+        [10, 20, 30],
+        [59, 1, 59, 1],
+        [90, 90, 90, 90],
+        [3599, 1, 30, 29, 1000, 5],
+        [25, 25, 25, 25, 25, 25],
+    ])
+    func cumulative_runningTotalStaysWithin30sOfReality(_ durations: [Double]) {
+        let parts = MinuteRounding.cumulative(durations)
+        var rawSoFar: TimeInterval = 0
+        var shownSoFar: TimeInterval = 0
+        for (raw, shown) in zip(durations, parts) {
+            rawSoFar += raw
+            shownSoFar += shown
+            #expect(abs(shownSoFar - rawSoFar) <= MinuteRounding.minute / 2)
+        }
+    }
+
+    // MARK: - cumulative: the documented trade-off
+
+    /// An item's rounded value depends on its position in the list — the same
+    /// multiset in a different order distributes the minutes differently, even
+    /// though the total is identical. Pinned so this intended behaviour can't drift
+    /// silently.
+    @Test func cumulative_dependsOnOrder() {
+        let a = MinuteRounding.cumulative([50, 20, 50])
+        let b = MinuteRounding.cumulative([20, 50, 50])
+        #expect(a == [60, 0, 60])
+        #expect(b == [0, 60, 60])
+        #expect(a.reduce(0, +) == b.reduce(0, +))
+    }
 }
