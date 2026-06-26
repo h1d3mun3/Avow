@@ -5,6 +5,8 @@ import SwiftUI
 struct FacetDetailView: View {
     let facet: Facet
 
+    @Environment(TimeRoundingSettings.self) private var roundingSettings
+
     private var tasks: [Task] {
         facet.tasks.sorted { $0.totalDuration > $1.totalDuration }
     }
@@ -35,7 +37,7 @@ struct FacetDetailView: View {
                                 }
                             }
                             Spacer()
-                            Text(task.totalDuration.shortFormatted)
+                            Text(roundingSettings.display(task.totalDuration).shortFormatted)
                                 .font(.callout)
                                 .monospacedDigit()
                                 .foregroundStyle(.secondary)
@@ -49,7 +51,7 @@ struct FacetDetailView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(facet.totalDuration.shortFormatted)
+            Text(roundingSettings.display(facet.totalDuration).shortFormatted)
                 .font(.title2)
                 .fontWeight(.semibold)
                 .monospacedDigit()

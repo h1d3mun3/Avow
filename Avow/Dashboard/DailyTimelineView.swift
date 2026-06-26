@@ -5,6 +5,7 @@ struct DailyTimelineView: View {
     let date: Date
 
     @Query private var entries: [TimeEntry]
+    @Environment(TimeRoundingSettings.self) private var roundingSettings
 
     init(date: Date) {
         self.date = date
@@ -36,10 +37,11 @@ struct DailyTimelineView: View {
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
+                let displayed = roundingSettings.display(entries.map(\.duration))
                 ScrollView {
                     VStack(alignment: .leading, spacing: 8) {
-                        ForEach(entries) { entry in
-                            TimeEntryRow(entry: entry)
+                        ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
+                            TimeEntryRow(entry: entry, displayDuration: displayed[index])
                         }
                     }
                     .padding(20)
@@ -54,7 +56,7 @@ struct DailyTimelineView: View {
                 Text(date, format: .dateTime.weekday(.wide).month().day())
                     .font(.title2)
                     .fontWeight(.semibold)
-                Text(totalDuration.shortFormatted)
+                Text(roundingSettings.display(totalDuration).shortFormatted)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .monospacedDigit()

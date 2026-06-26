@@ -4,6 +4,7 @@ import SwiftData
 struct SidebarView: View {
     @Environment(AppState.self) private var appState
     @Environment(Repositories.self) private var repositories
+    @Environment(TimeRoundingSettings.self) private var roundingSettings
 
     @Query(sort: \Project.sortOrder)
     private var projects: [Project]
@@ -54,7 +55,7 @@ struct SidebarView: View {
                             } else {
                                 Text(project.name)
                                 Spacer()
-                                let total = project.totalDuration
+                                let total = roundingSettings.display(project.totalDuration)
                                 Text(total.shortFormatted)
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
@@ -92,7 +93,7 @@ struct SidebarView: View {
                                     Text(project.name)
                                         .foregroundStyle(.secondary)
                                     Spacer()
-                                    let total = project.totalDuration
+                                    let total = roundingSettings.display(project.totalDuration)
                                     Text(total.shortFormatted)
                                         .font(.caption)
                                         .foregroundStyle(.tertiary)
@@ -131,7 +132,7 @@ struct SidebarView: View {
                                 } else {
                                     Text(facet.name)
                                     Spacer()
-                                    Text(facet.totalDuration.shortFormatted)
+                                    Text(roundingSettings.display(facet.totalDuration).shortFormatted)
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                         .monospacedDigit()

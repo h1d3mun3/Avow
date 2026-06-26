@@ -5,16 +5,27 @@ struct TaskListPanel: View {
     @Binding var selectedTaskID: Task.ID?
     @Binding var newTaskName: String
     @State private var errorMessage: String?
+    @Environment(TimeRoundingSettings.self) private var roundingSettings
+
     /// Completed tasks start folded away to keep the focus on active work. Session-only
     /// by design — resets to collapsed when the view is rebuilt (e.g. switching projects).
     @State private var showCompleted = false
 
+    /// Per-task display durations, rounded together (active tasks then completed,
+    /// matching display order) so every task row adds up to the "Total tracked" card.
+    private var taskDisplayDurations: [Task.ID: TimeInterval] {
+        let ordered = viewModel.activeTasks + viewModel.completedTasks
+        let displayed = roundingSettings.display(ordered.map(\.totalDuration))
+        return Dictionary(uniqueKeysWithValues: zip(ordered.map(\.id), displayed))
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        let displayDurations = taskDisplayDurations
+        return VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 20) {
                 HStack(spacing: 12) {
-                    ProjectSummaryCard(label: "Total tracked", value: viewModel.totalDuration.shortFormatted)
-                    ProjectSummaryCard(label: "This week", value: viewModel.thisWeekDuration.shortFormatted)
+                    ProjectSummaryCard(label: "Total tracked", value: roundingSettings.display(viewModel.totalDuration).shortFormatted)
+                    ProjectSummaryCard(label: "This week", value: roundingSettings.display(viewModel.thisWeekDuration).shortFormatted)
                     ProjectSummaryCard(label: "Active tasks", value: "\(viewModel.activeTasks.count)")
                 }
                 HStack {
@@ -44,7 +55,7 @@ struct TaskListPanel: View {
                     if !viewModel.activeTasks.isEmpty {
                         Section {
                             ForEach(viewModel.activeTasks) { task in
-                                taskRow(task, isCompleted: false)
+                                taskRow(task, isCompleted: false, displayDuration: displayDurations[task.id])
                             }
                         } header: {
                             sectionHeader("Active tasks")
@@ -57,7 +68,7 @@ struct TaskListPanel: View {
 
                             if showCompleted {
                                 ForEach(viewModel.completedTasks) { task in
-                                    taskRow(task, isCompleted: true)
+                                    taskRow(task, isCompleted: true, displayDuration: displayDurations[task.id])
                                 }
                             }
                         }
@@ -108,10 +119,11 @@ struct TaskListPanel: View {
         .accessibilityHint("Double tap to \(showCompleted ? "collapse" : "expand")")
     }
 
-    private func taskRow(_ task: Task, isCompleted: Bool) -> some View {
+    private func taskRow(_ task: Task, isCompleted: Bool, displayDuration: TimeInterval?) -> some View {
         TaskDetailRow(
             task: task,
             isCompleted: isCompleted,
+            displayDuration: displayDuration,
             onToggle: { do { try viewModel.toggleStatus(task) } catch { errorMessage = error.localizedDescription } },
             onDelete: {
                 if selectedTaskID == task.id { selectedTaskID = nil }

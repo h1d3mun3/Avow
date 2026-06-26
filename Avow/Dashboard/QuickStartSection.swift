@@ -68,6 +68,7 @@ private struct QuickStartRow: View {
     let action: () -> Void
 
     @Environment(AppState.self) private var appState
+    @Environment(TimeRoundingSettings.self) private var roundingSettings
 
     private var todayDuration: TimeInterval {
         let start = DateWindows().startOfToday()
@@ -104,7 +105,7 @@ private struct QuickStartRow: View {
                         .monospacedDigit()
                         .foregroundStyle(.secondary)
                 } else if todayDuration > 0 {
-                    Text(todayDuration.shortFormatted)
+                    Text(roundingSettings.display(todayDuration).shortFormatted)
                         .font(.caption)
                         .monospacedDigit()
                         .foregroundStyle(.tertiary)
