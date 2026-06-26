@@ -93,7 +93,7 @@ struct SidebarView: View {
                                     Text(project.name)
                                         .foregroundStyle(.secondary)
                                     Spacer()
-                                    let total = project.totalDuration
+                                    let total = roundingSettings.display(project.totalDuration)
                                     Text(total.shortFormatted)
                                         .font(.caption)
                                         .foregroundStyle(.tertiary)
@@ -153,43 +153,6 @@ struct SidebarView: View {
                     }
                 }
             }
-<<<<<<< HEAD
-
-            if !viewModel.archivedProjects.isEmpty {
-                Section {
-                    DisclosureGroup(isExpanded: $showArchived) {
-                        ForEach(viewModel.archivedProjects) { project in
-                            NavigationLink(value: DashboardView.SidebarItem.project(project)) {
-                                HStack(spacing: 8) {
-                                    Text(project.name)
-                                        .foregroundStyle(.secondary)
-                                    Spacer()
-                                    let total = roundingSettings.display(project.totalDuration)
-                                    Text(total.shortFormatted)
-                                        .font(.caption)
-                                        .foregroundStyle(.tertiary)
-                                        .monospacedDigit()
-                                }
-                            }
-                            .contextMenu {
-                                Button("Unarchive") {
-                                    do { try repositories.project.unarchive(project) } catch { errorMessage = error.localizedDescription }
-                                }
-                                Divider()
-                                Button("Delete…", role: .destructive) {
-                                    projectToDelete = project
-                                }
-                            }
-                        }
-                    } label: {
-                        Text("Archived")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-=======
->>>>>>> main
         }
         .listStyle(.sidebar)
         .onChange(of: projects, initial: true) { _, new in

@@ -3,13 +3,9 @@ import SwiftUI
 struct TaskDetailRow: View {
     let task: Task
     var isCompleted: Bool = false
-<<<<<<< HEAD
-    var isSelected: Bool = false
     /// Pre-rounded duration to show, supplied by the parent so the task rows add up
     /// to the project total. Falls back to the task's own total when not provided.
     var displayDuration: TimeInterval? = nil
-=======
->>>>>>> main
     let onToggle: () -> Void
     var onDelete: (() -> Void)? = nil
     var onRename: (String) -> Void = { _ in }

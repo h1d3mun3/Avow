@@ -5,8 +5,11 @@ struct TaskListPanel: View {
     @Binding var selectedTaskID: Task.ID?
     @Binding var newTaskName: String
     @State private var errorMessage: String?
-<<<<<<< HEAD
     @Environment(TimeRoundingSettings.self) private var roundingSettings
+
+    /// Completed tasks start folded away to keep the focus on active work. Session-only
+    /// by design — resets to collapsed when the view is rebuilt (e.g. switching projects).
+    @State private var showCompleted = false
 
     /// Per-task display durations, rounded together (active tasks then completed,
     /// matching display order) so every task row adds up to the "Total tracked" card.
@@ -15,11 +18,6 @@ struct TaskListPanel: View {
         let displayed = roundingSettings.display(ordered.map(\.totalDuration))
         return Dictionary(uniqueKeysWithValues: zip(ordered.map(\.id), displayed))
     }
-=======
-    /// Completed tasks start folded away to keep the focus on active work. Session-only
-    /// by design — resets to collapsed when the view is rebuilt (e.g. switching projects).
-    @State private var showCompleted = false
->>>>>>> main
 
     var body: some View {
         let displayDurations = taskDisplayDurations
@@ -57,22 +55,7 @@ struct TaskListPanel: View {
                     if !viewModel.activeTasks.isEmpty {
                         Section {
                             ForEach(viewModel.activeTasks) { task in
-<<<<<<< HEAD
-                                TaskDetailRow(
-                                    task: task,
-                                    isSelected: selectedTask?.id == task.id,
-                                    displayDuration: displayDurations[task.id],
-                                    onToggle: { do { try viewModel.toggleStatus(task) } catch { errorMessage = error.localizedDescription } },
-                                    onSelect: { selectedTask = task },
-                                    onDelete: {
-                                        if selectedTask?.id == task.id { selectedTask = nil }
-                                        do { try viewModel.delete(task) } catch { errorMessage = error.localizedDescription }
-                                    },
-                                    onRename: { do { try viewModel.rename(task, to: $0) } catch { errorMessage = error.localizedDescription } }
-                                )
-=======
-                                taskRow(task, isCompleted: false)
->>>>>>> main
+                                taskRow(task, isCompleted: false, displayDuration: displayDurations[task.id])
                             }
                         } header: {
                             sectionHeader("Active tasks")
@@ -83,27 +66,10 @@ struct TaskListPanel: View {
                         Section {
                             completedHeader
 
-<<<<<<< HEAD
-                            ForEach(viewModel.completedTasks) { task in
-                                TaskDetailRow(
-                                    task: task,
-                                    isCompleted: true,
-                                    isSelected: selectedTask?.id == task.id,
-                                    displayDuration: displayDurations[task.id],
-                                    onToggle: { do { try viewModel.toggleStatus(task) } catch { errorMessage = error.localizedDescription } },
-                                    onSelect: { selectedTask = task },
-                                    onDelete: {
-                                        if selectedTask?.id == task.id { selectedTask = nil }
-                                        do { try viewModel.delete(task) } catch { errorMessage = error.localizedDescription }
-                                    },
-                                    onRename: { do { try viewModel.rename(task, to: $0) } catch { errorMessage = error.localizedDescription } }
-                                )
-=======
                             if showCompleted {
                                 ForEach(viewModel.completedTasks) { task in
-                                    taskRow(task, isCompleted: true)
+                                    taskRow(task, isCompleted: true, displayDuration: displayDurations[task.id])
                                 }
->>>>>>> main
                             }
                         }
                     }
@@ -153,10 +119,11 @@ struct TaskListPanel: View {
         .accessibilityHint("Double tap to \(showCompleted ? "collapse" : "expand")")
     }
 
-    private func taskRow(_ task: Task, isCompleted: Bool) -> some View {
+    private func taskRow(_ task: Task, isCompleted: Bool, displayDuration: TimeInterval?) -> some View {
         TaskDetailRow(
             task: task,
             isCompleted: isCompleted,
+            displayDuration: displayDuration,
             onToggle: { do { try viewModel.toggleStatus(task) } catch { errorMessage = error.localizedDescription } },
             onDelete: {
                 if selectedTaskID == task.id { selectedTaskID = nil }
