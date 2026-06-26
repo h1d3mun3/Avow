@@ -55,6 +55,32 @@ struct ProjectDetailViewModelTests {
         #expect(vm.completedTasks.map(\.name) == ["Alpha", "Zebra"])
     }
 
+    @Test func taskWithID_returnsMatchingTask() throws {
+        let context = try makeInMemoryContext()
+        let project = Project(name: "P")
+        context.insert(project)
+        let target = Task(name: "Target", project: project)
+        let other = Task(name: "Other", project: project)
+        [target, other].forEach { context.insert($0) }
+
+        let vm = ProjectDetailViewModel(project: project, taskRepository: MockTaskRepository())
+
+        #expect(vm.task(withID: target.id)?.id == target.id)
+    }
+
+    @Test func taskWithID_returnsNilForNilOrUnknownID() throws {
+        let context = try makeInMemoryContext()
+        let project = Project(name: "P")
+        context.insert(project)
+        let task = Task(name: "T", project: project)
+        context.insert(task)
+
+        let vm = ProjectDetailViewModel(project: project, taskRepository: MockTaskRepository())
+
+        #expect(vm.task(withID: nil) == nil)
+        #expect(vm.task(withID: UUID()) == nil)
+    }
+
     @Test func totalDuration_sumsAllEntries() throws {
         let context = try makeInMemoryContext()
         let project = Project(name: "P")
