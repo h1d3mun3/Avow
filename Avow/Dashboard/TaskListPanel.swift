@@ -5,6 +5,9 @@ struct TaskListPanel: View {
     @Binding var selectedTask: Task?
     @Binding var newTaskName: String
     @State private var errorMessage: String?
+    /// Completed tasks start folded away to keep the focus on active work. Session-only
+    /// by design — resets to collapsed when the view is rebuilt (e.g. switching projects).
+    @State private var showCompleted = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -58,24 +61,45 @@ struct TaskListPanel: View {
                         }
 
                         if !viewModel.completedTasks.isEmpty {
-                            Text("Completed")
-                                .font(.subheadline)
-                                .fontWeight(.medium)
+                            Button {
+                                withAnimation(.easeInOut(duration: 0.15)) { showCompleted.toggle() }
+                            } label: {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption2)
+                                        .fontWeight(.semibold)
+                                        .rotationEffect(.degrees(showCompleted ? 90 : 0))
+                                    Text("Completed")
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                    Text("\(viewModel.completedTasks.count)")
+                                        .font(.caption)
+                                        .monospacedDigit()
+                                    Spacer()
+                                }
                                 .foregroundStyle(.tertiary)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Completed, \(viewModel.completedTasks.count) tasks")
+                            .accessibilityValue(showCompleted ? "Expanded" : "Collapsed")
+                            .accessibilityHint("Double tap to \(showCompleted ? "collapse" : "expand")")
 
-                            ForEach(viewModel.completedTasks) { task in
-                                TaskDetailRow(
-                                    task: task,
-                                    isCompleted: true,
-                                    isSelected: selectedTask?.id == task.id,
-                                    onToggle: { do { try viewModel.toggleStatus(task) } catch { errorMessage = error.localizedDescription } },
-                                    onSelect: { selectedTask = task },
-                                    onDelete: {
-                                        if selectedTask?.id == task.id { selectedTask = nil }
-                                        do { try viewModel.delete(task) } catch { errorMessage = error.localizedDescription }
-                                    },
-                                    onRename: { do { try viewModel.rename(task, to: $0) } catch { errorMessage = error.localizedDescription } }
-                                )
+                            if showCompleted {
+                                ForEach(viewModel.completedTasks) { task in
+                                    TaskDetailRow(
+                                        task: task,
+                                        isCompleted: true,
+                                        isSelected: selectedTask?.id == task.id,
+                                        onToggle: { do { try viewModel.toggleStatus(task) } catch { errorMessage = error.localizedDescription } },
+                                        onSelect: { selectedTask = task },
+                                        onDelete: {
+                                            if selectedTask?.id == task.id { selectedTask = nil }
+                                            do { try viewModel.delete(task) } catch { errorMessage = error.localizedDescription }
+                                        },
+                                        onRename: { do { try viewModel.rename(task, to: $0) } catch { errorMessage = error.localizedDescription } }
+                                    )
+                                }
                             }
                         }
                     }
