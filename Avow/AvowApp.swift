@@ -34,6 +34,7 @@ struct AvowApp: App {
     let repositories: Repositories
     @State private var appState: AppState
     @State private var hotkeySettings = HotkeySettings()
+    @State private var roundingSettings = TimeRoundingSettings()
 
     init() {
         let schema = Schema([
@@ -95,6 +96,7 @@ struct AvowApp: App {
                 .environment(appState)
                 .environment(repositories)
                 .environment(hotkeySettings)
+                .environment(roundingSettings)
                 .modelContainer(modelContainer)
         }
         .defaultSize(width: 900, height: 600)

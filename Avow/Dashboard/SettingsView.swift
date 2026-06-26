@@ -7,6 +7,7 @@ struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(Repositories.self) private var repositories
     @Environment(HotkeySettings.self) private var hotkeySettings
+    @Environment(TimeRoundingSettings.self) private var roundingSettings
 
     @State private var showingResetConfirmation = false
     @State private var statusMessage: String?
@@ -15,6 +16,7 @@ struct SettingsView: View {
 
     var body: some View {
         @Bindable var hotkeySettings = hotkeySettings
+        @Bindable var roundingSettings = roundingSettings
 
         return ScrollView {
             VStack(alignment: .leading, spacing: 24) {
@@ -31,6 +33,24 @@ struct SettingsView: View {
                             Spacer()
                             HotkeyRecorder(preference: $hotkeySettings.preference)
                                 .frame(width: 130, height: 24)
+                        }
+                    }
+
+                    // Time display
+                    SettingsSection(title: "Time display") {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Round summaries to the minute")
+                                    .font(.subheadline)
+                                Text("Display whole minutes so each entry and its total always add up. Stored times keep full precision.")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Toggle("", isOn: $roundingSettings.roundToMinute)
+                                .labelsHidden()
+                                .toggleStyle(.switch)
+                                .accessibilityLabel("Round summaries to the minute")
                         }
                     }
 
