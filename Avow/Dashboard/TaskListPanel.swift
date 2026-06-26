@@ -2,7 +2,7 @@ import SwiftUI
 
 struct TaskListPanel: View {
     let viewModel: ProjectDetailViewModel
-    @Binding var selectedTask: Task?
+    @Binding var selectedTaskID: Task.ID?
     @Binding var newTaskName: String
     @State private var errorMessage: String?
     /// Completed tasks start folded away to keep the focus on active work. Session-only
@@ -37,77 +37,90 @@ struct TaskListPanel: View {
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
-                        if !viewModel.activeTasks.isEmpty {
-                            Text("Active tasks")
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                                .foregroundStyle(.secondary)
-
+                // A real List(selection:) so keyboard focus lives with the tasks:
+                // arrow keys move between rows (across the Active and Completed
+                // groups) instead of leaking to the sidebar's project list.
+                List(selection: $selectedTaskID) {
+                    if !viewModel.activeTasks.isEmpty {
+                        Section {
                             ForEach(viewModel.activeTasks) { task in
-                                TaskDetailRow(
-                                    task: task,
-                                    isSelected: selectedTask?.id == task.id,
-                                    onToggle: { do { try viewModel.toggleStatus(task) } catch { errorMessage = error.localizedDescription } },
-                                    onSelect: { selectedTask = task },
-                                    onDelete: {
-                                        if selectedTask?.id == task.id { selectedTask = nil }
-                                        do { try viewModel.delete(task) } catch { errorMessage = error.localizedDescription }
-                                    },
-                                    onRename: { do { try viewModel.rename(task, to: $0) } catch { errorMessage = error.localizedDescription } }
-                                )
+                                taskRow(task, isCompleted: false)
                             }
+                        } header: {
+                            sectionHeader("Active tasks")
                         }
+                    }
 
-                        if !viewModel.completedTasks.isEmpty {
-                            Button {
-                                withAnimation(.easeInOut(duration: 0.15)) { showCompleted.toggle() }
-                            } label: {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "chevron.right")
-                                        .font(.caption2)
-                                        .fontWeight(.semibold)
-                                        .rotationEffect(.degrees(showCompleted ? 90 : 0))
-                                    Text("Completed")
-                                        .font(.subheadline)
-                                        .fontWeight(.medium)
-                                    Text("\(viewModel.completedTasks.count)")
-                                        .font(.caption)
-                                        .monospacedDigit()
-                                    Spacer()
-                                }
-                                .foregroundStyle(.tertiary)
-                                .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel("Completed, \(viewModel.completedTasks.count) tasks")
-                            .accessibilityValue(showCompleted ? "Expanded" : "Collapsed")
-                            .accessibilityHint("Double tap to \(showCompleted ? "collapse" : "expand")")
+                    if !viewModel.completedTasks.isEmpty {
+                        Section {
+                            completedHeader
 
                             if showCompleted {
                                 ForEach(viewModel.completedTasks) { task in
-                                    TaskDetailRow(
-                                        task: task,
-                                        isCompleted: true,
-                                        isSelected: selectedTask?.id == task.id,
-                                        onToggle: { do { try viewModel.toggleStatus(task) } catch { errorMessage = error.localizedDescription } },
-                                        onSelect: { selectedTask = task },
-                                        onDelete: {
-                                            if selectedTask?.id == task.id { selectedTask = nil }
-                                            do { try viewModel.delete(task) } catch { errorMessage = error.localizedDescription }
-                                        },
-                                        onRename: { do { try viewModel.rename(task, to: $0) } catch { errorMessage = error.localizedDescription } }
-                                    )
+                                    taskRow(task, isCompleted: true)
                                 }
                             }
                         }
                     }
-                    .padding(20)
                 }
+                .listStyle(.inset)
+                .scrollContentBackground(.hidden)
             }
         }
         .errorAlert($errorMessage)
+    }
+
+    private func sectionHeader(_ title: String) -> some View {
+        Text(title)
+            .font(.subheadline)
+            .fontWeight(.medium)
+            .foregroundStyle(.secondary)
+            .textCase(nil)
+    }
+
+    /// Collapsible disclosure for the Completed group. It carries no selection
+    /// tag, so List arrow navigation skips it; when collapsed the rows below are
+    /// absent from the tree, so they are unreachable by keyboard too.
+    private var completedHeader: some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.15)) { showCompleted.toggle() }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "chevron.right")
+                    .font(.caption2)
+                    .fontWeight(.semibold)
+                    .rotationEffect(.degrees(showCompleted ? 90 : 0))
+                Text("Completed")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                Text("\(viewModel.completedTasks.count)")
+                    .font(.caption)
+                    .monospacedDigit()
+                Spacer()
+            }
+            .foregroundStyle(.tertiary)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .listRowSeparator(.hidden)
+        .accessibilityLabel("Completed, \(viewModel.completedTasks.count) tasks")
+        .accessibilityValue(showCompleted ? "Expanded" : "Collapsed")
+        .accessibilityHint("Double tap to \(showCompleted ? "collapse" : "expand")")
+    }
+
+    private func taskRow(_ task: Task, isCompleted: Bool) -> some View {
+        TaskDetailRow(
+            task: task,
+            isCompleted: isCompleted,
+            onToggle: { do { try viewModel.toggleStatus(task) } catch { errorMessage = error.localizedDescription } },
+            onDelete: {
+                if selectedTaskID == task.id { selectedTaskID = nil }
+                do { try viewModel.delete(task) } catch { errorMessage = error.localizedDescription }
+            },
+            onRename: { do { try viewModel.rename(task, to: $0) } catch { errorMessage = error.localizedDescription } }
+        )
+        .listRowSeparator(.hidden)
+        .tag(task.id)
     }
 
     private func addTask() {

@@ -31,6 +31,14 @@ final class ProjectDetailViewModel {
             .sorted { $0.name < $1.name }
     }
 
+    /// Resolves a selection id back to its task. The list selects by `Task.ID`
+    /// (stable across SwiftData refetches), while the detail panel needs the
+    /// concrete task. Returns nil for a nil or unknown id.
+    func task(withID id: Task.ID?) -> Task? {
+        guard let id else { return nil }
+        return project.tasks.first { $0.id == id }
+    }
+
     var totalDuration: TimeInterval {
         project.totalDuration
     }
