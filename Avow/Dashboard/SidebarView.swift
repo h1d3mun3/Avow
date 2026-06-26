@@ -20,6 +20,7 @@ struct SidebarView: View {
     @State private var renameText: String = ""
     @FocusState private var renameFieldFocused: Bool
     @State private var showArchived = false
+    @State private var showProjects = true
     @State private var showFacets = true
     @State private var projectToDelete: Project?
     @State private var renamingFacet: Facet?
@@ -40,7 +41,7 @@ struct SidebarView: View {
                 Label("Calendar", systemImage: "calendar")
             }
 
-            Section("Projects") {
+            Section("Projects", isExpanded: $showProjects) {
                 ForEach(viewModel.activeProjects) { project in
                     NavigationLink(value: DashboardView.SidebarItem.project(project)) {
                         HStack(spacing: 8) {
@@ -82,6 +83,40 @@ struct SidebarView: View {
                 .onMove(perform: moveProjects)
             }
 
+            if !viewModel.archivedProjects.isEmpty {
+                Section {
+                    DisclosureGroup(isExpanded: $showArchived) {
+                        ForEach(viewModel.archivedProjects) { project in
+                            NavigationLink(value: DashboardView.SidebarItem.project(project)) {
+                                HStack(spacing: 8) {
+                                    Text(project.name)
+                                        .foregroundStyle(.secondary)
+                                    Spacer()
+                                    let total = project.totalDuration
+                                    Text(total.shortFormatted)
+                                        .font(.caption)
+                                        .foregroundStyle(.tertiary)
+                                        .monospacedDigit()
+                                }
+                            }
+                            .contextMenu {
+                                Button("Unarchive") {
+                                    do { try repositories.project.unarchive(project) } catch { errorMessage = error.localizedDescription }
+                                }
+                                Divider()
+                                Button("Delete…", role: .destructive) {
+                                    projectToDelete = project
+                                }
+                            }
+                        }
+                    } label: {
+                        Text("Archived")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+
             if !facets.isEmpty {
                 Section("Facets", isExpanded: $showFacets) {
                     ForEach(facets) { facet in
@@ -114,40 +149,6 @@ struct SidebarView: View {
                                 facetToDelete = facet
                             }
                         }
-                    }
-                }
-            }
-
-            if !viewModel.archivedProjects.isEmpty {
-                Section {
-                    DisclosureGroup(isExpanded: $showArchived) {
-                        ForEach(viewModel.archivedProjects) { project in
-                            NavigationLink(value: DashboardView.SidebarItem.project(project)) {
-                                HStack(spacing: 8) {
-                                    Text(project.name)
-                                        .foregroundStyle(.secondary)
-                                    Spacer()
-                                    let total = project.totalDuration
-                                    Text(total.shortFormatted)
-                                        .font(.caption)
-                                        .foregroundStyle(.tertiary)
-                                        .monospacedDigit()
-                                }
-                            }
-                            .contextMenu {
-                                Button("Unarchive") {
-                                    do { try repositories.project.unarchive(project) } catch { errorMessage = error.localizedDescription }
-                                }
-                                Divider()
-                                Button("Delete…", role: .destructive) {
-                                    projectToDelete = project
-                                }
-                            }
-                        }
-                    } label: {
-                        Text("Archived")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
                     }
                 }
             }
