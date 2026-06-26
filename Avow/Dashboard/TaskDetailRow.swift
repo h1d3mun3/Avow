@@ -3,12 +3,14 @@ import SwiftUI
 struct TaskDetailRow: View {
     let task: Task
     var isCompleted: Bool = false
+<<<<<<< HEAD
     var isSelected: Bool = false
     /// Pre-rounded duration to show, supplied by the parent so the task rows add up
     /// to the project total. Falls back to the task's own total when not provided.
     var displayDuration: TimeInterval? = nil
+=======
+>>>>>>> main
     let onToggle: () -> Void
-    var onSelect: () -> Void = {}
     var onDelete: (() -> Void)? = nil
     var onRename: (String) -> Void = { _ in }
 
@@ -63,14 +65,13 @@ struct TaskDetailRow: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
+        // Selection highlight is now owned by the enclosing List(selection:);
+        // this only keeps the faint tint that sets completed rows apart.
         .background(
-            isSelected
-                ? AnyShapeStyle(Color.accentColor.opacity(0.12))
-                : AnyShapeStyle(.quaternary.opacity(isCompleted ? 0.2 : 0.0)),
+            .quaternary.opacity(isCompleted ? 0.2 : 0.0),
             in: RoundedRectangle(cornerRadius: 8)
         )
         .contentShape(Rectangle())
-        .onTapGesture { onSelect() }
         .contextMenu {
             Button("Rename") {
                 isRenaming = true
