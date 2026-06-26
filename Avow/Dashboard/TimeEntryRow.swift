@@ -3,6 +3,9 @@ import SwiftData
 
 struct TimeEntryRow: View {
     let entry: TimeEntry
+    /// Pre-rounded duration to show, supplied by the parent so a day's entries add up
+    /// to the day total. Falls back to the entry's own duration when not provided.
+    var displayDuration: TimeInterval? = nil
 
     @Environment(Repositories.self) private var repositories
     @State private var isEditing = false
@@ -46,7 +49,7 @@ struct TimeEntryRow: View {
 
             Spacer()
 
-            Text(entry.duration.shortFormatted)
+            Text((displayDuration ?? entry.duration).shortFormatted)
                 .font(.caption)
                 .monospacedDigit()
                 .foregroundStyle(.secondary)

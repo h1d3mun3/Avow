@@ -6,6 +6,7 @@ struct TaskTimeEntryPanel: View {
     let onClose: () -> Void
 
     @Environment(Repositories.self) private var repositories
+    @Environment(TimeRoundingSettings.self) private var roundingSettings
     // Driven by @Query so manual add/delete/edit reflect immediately;
     // reading task.timeEntries directly does not re-render on insert.
     @Query private var entries: [TimeEntry]
@@ -65,10 +66,11 @@ struct TaskTimeEntryPanel: View {
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
+                let displayed = roundingSettings.display(entries.map(\.duration))
                 ScrollView {
                     VStack(spacing: 6) {
-                        ForEach(entries) { entry in
-                            TimeEntryRow(entry: entry)
+                        ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
+                            TimeEntryRow(entry: entry, displayDuration: displayed[index])
                         }
                     }
                     .padding(12)

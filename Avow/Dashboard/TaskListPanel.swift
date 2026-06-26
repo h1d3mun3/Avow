@@ -5,13 +5,23 @@ struct TaskListPanel: View {
     @Binding var selectedTask: Task?
     @Binding var newTaskName: String
     @State private var errorMessage: String?
+    @Environment(TimeRoundingSettings.self) private var roundingSettings
+
+    /// Per-task display durations, rounded together (active tasks then completed,
+    /// matching display order) so every task row adds up to the "Total tracked" card.
+    private var taskDisplayDurations: [Task.ID: TimeInterval] {
+        let ordered = viewModel.activeTasks + viewModel.completedTasks
+        let displayed = roundingSettings.display(ordered.map(\.totalDuration))
+        return Dictionary(uniqueKeysWithValues: zip(ordered.map(\.id), displayed))
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        let displayDurations = taskDisplayDurations
+        return VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 20) {
                 HStack(spacing: 12) {
-                    ProjectSummaryCard(label: "Total tracked", value: viewModel.totalDuration.shortFormatted)
-                    ProjectSummaryCard(label: "This week", value: viewModel.thisWeekDuration.shortFormatted)
+                    ProjectSummaryCard(label: "Total tracked", value: roundingSettings.display(viewModel.totalDuration).shortFormatted)
+                    ProjectSummaryCard(label: "This week", value: roundingSettings.display(viewModel.thisWeekDuration).shortFormatted)
                     ProjectSummaryCard(label: "Active tasks", value: "\(viewModel.activeTasks.count)")
                 }
                 HStack {
@@ -46,6 +56,7 @@ struct TaskListPanel: View {
                                 TaskDetailRow(
                                     task: task,
                                     isSelected: selectedTask?.id == task.id,
+                                    displayDuration: displayDurations[task.id],
                                     onToggle: { do { try viewModel.toggleStatus(task) } catch { errorMessage = error.localizedDescription } },
                                     onSelect: { selectedTask = task },
                                     onDelete: {
@@ -68,6 +79,7 @@ struct TaskListPanel: View {
                                     task: task,
                                     isCompleted: true,
                                     isSelected: selectedTask?.id == task.id,
+                                    displayDuration: displayDurations[task.id],
                                     onToggle: { do { try viewModel.toggleStatus(task) } catch { errorMessage = error.localizedDescription } },
                                     onSelect: { selectedTask = task },
                                     onDelete: {

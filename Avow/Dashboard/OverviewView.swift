@@ -4,6 +4,7 @@ import SwiftData
 struct OverviewView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.modelContext) private var modelContext
+    @Environment(TimeRoundingSettings.self) private var roundingSettings
 
     @Query(sort: \Project.name)
     private var projects: [Project]
@@ -32,17 +33,17 @@ struct OverviewView: View {
                     HStack(spacing: 12) {
                         OverviewSummaryCard(
                             label: "Total tracked",
-                            value: viewModel.totalDuration.shortFormatted,
+                            value: roundingSettings.display(viewModel.totalDuration).shortFormatted,
                             sub: "\(viewModel.activeProjects.count) projects"
                         )
                         OverviewSummaryCard(
                             label: "This week",
-                            value: viewModel.thisWeekDuration.shortFormatted,
+                            value: roundingSettings.display(viewModel.thisWeekDuration).shortFormatted,
                             sub: ""
                         )
                         OverviewSummaryCard(
                             label: "Today",
-                            value: viewModel.todayDuration.shortFormatted,
+                            value: roundingSettings.display(viewModel.todayDuration).shortFormatted,
                             sub: ""
                         )
                     }

@@ -40,6 +40,7 @@ private struct DayProjectBreakdown: View {
     let date: Date
 
     @Query private var entries: [TimeEntry]
+    @Environment(TimeRoundingSettings.self) private var roundingSettings
 
     init(date: Date) {
         self.date = date
@@ -52,13 +53,16 @@ private struct DayProjectBreakdown: View {
     var body: some View {
         if !entries.isEmpty {
             let breakdown = DayBreakdown(entries: entries)
+            // Each entry belongs to exactly one project, so the per-project rows
+            // reconcile to the day total — round them cumulatively.
+            let displayed = roundingSettings.display(breakdown.items.map(\.duration))
             VStack(alignment: .leading, spacing: 10) {
                 Text("By project")
                     .font(.caption)
                     .fontWeight(.medium)
                     .foregroundStyle(.secondary)
 
-                ForEach(breakdown.items, id: \.name) { item in
+                ForEach(Array(breakdown.items.enumerated()), id: \.element.name) { index, item in
                     HStack(spacing: 6) {
                         Text(item.name)
                             .font(.caption)
@@ -75,7 +79,7 @@ private struct DayProjectBreakdown: View {
                                 }
                         }
                         .frame(width: 44, height: 5)
-                        Text(item.duration.shortFormatted)
+                        Text(displayed[index].shortFormatted)
                             .font(.caption)
                             .monospacedDigit()
                             .foregroundStyle(.secondary)
@@ -93,6 +97,7 @@ private struct DayFacetBreakdown: View {
     let date: Date
 
     @Query private var entries: [TimeEntry]
+    @Environment(TimeRoundingSettings.self) private var roundingSettings
 
     init(date: Date) {
         self.date = date
@@ -113,13 +118,15 @@ private struct DayFacetBreakdown: View {
                     .fontWeight(.medium)
                     .foregroundStyle(.secondary)
 
+                // Facets overlap (a task may carry several), so these rows don't sum
+                // to any single total — round each independently to the nearest minute.
                 ForEach(breakdown.items, id: \.name) { item in
                     HStack(spacing: 6) {
                         Text(item.name)
                             .font(.caption)
                             .lineLimit(1)
                         Spacer()
-                        Text(item.duration.shortFormatted)
+                        Text(roundingSettings.display(item.duration).shortFormatted)
                             .font(.caption)
                             .monospacedDigit()
                             .foregroundStyle(.secondary)

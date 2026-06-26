@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ProjectBreakdownSection: View {
     let viewModel: OverviewViewModel
+    @Environment(TimeRoundingSettings.self) private var roundingSettings
 
     var body: some View {
         Text("Time by project")
@@ -9,7 +10,12 @@ struct ProjectBreakdownSection: View {
             .fontWeight(.medium)
             .foregroundStyle(.secondary)
 
-        ForEach(viewModel.projectBreakdown, id: \.project.id) { item in
+        // Round the per-project durations together so they still add up to the
+        // rounded "Total tracked" card above.
+        let breakdown = viewModel.projectBreakdown
+        let displayed = roundingSettings.display(breakdown.map(\.duration))
+
+        ForEach(Array(breakdown.enumerated()), id: \.element.project.id) { index, item in
             HStack(spacing: 10) {
                 Text(item.project.name)
                     .font(.subheadline)
@@ -25,7 +31,7 @@ struct ProjectBreakdownSection: View {
                         }
                 }
                 .frame(width: 100, height: 6)
-                Text(item.duration.shortFormatted)
+                Text(displayed[index].shortFormatted)
                     .font(.caption)
                     .monospacedDigit()
                     .foregroundStyle(.secondary)
