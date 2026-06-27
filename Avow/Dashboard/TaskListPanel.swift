@@ -52,14 +52,19 @@ struct TaskListPanel: View {
                 // arrow keys move between rows (across the Active and Completed
                 // groups) instead of leaking to the sidebar's project list.
                 List(selection: $selectedTaskID) {
-                    if !viewModel.activeTasks.isEmpty {
-                        Section {
+                    // Always show the Active tasks section so the heading stays put
+                    // even when every task is completed; an empty placeholder makes
+                    // it clear there is simply no active work right now.
+                    Section {
+                        if viewModel.activeTasks.isEmpty {
+                            emptyActiveTasksRow
+                        } else {
                             ForEach(viewModel.activeTasks) { task in
                                 taskRow(task, isCompleted: false, displayDuration: displayDurations[task.id])
                             }
-                        } header: {
-                            sectionHeader("Active tasks")
                         }
+                    } header: {
+                        sectionHeader("Active tasks")
                     }
 
                     if !viewModel.completedTasks.isEmpty {
@@ -79,6 +84,18 @@ struct TaskListPanel: View {
             }
         }
         .errorAlert($errorMessage)
+    }
+
+    /// Placeholder shown under the Active tasks header when no task is active,
+    /// so the section never collapses out of view. Carries no selection tag,
+    /// so List arrow navigation skips it.
+    private var emptyActiveTasksRow: some View {
+        Text("No active tasks")
+            .font(.subheadline)
+            .foregroundStyle(.tertiary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .listRowSeparator(.hidden)
+            .accessibilityLabel("No active tasks")
     }
 
     private func sectionHeader(_ title: String) -> some View {
