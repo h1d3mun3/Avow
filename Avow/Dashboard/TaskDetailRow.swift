@@ -6,6 +6,12 @@ struct TaskDetailRow: View {
     /// Pre-rounded duration to show, supplied by the parent so the task rows add up
     /// to the project total. Falls back to the task's own total when not provided.
     var displayDuration: TimeInterval? = nil
+    /// When true, the row opens directly in rename mode with the keyboard focus —
+    /// used for a freshly added blank task so the user names it inline.
+    var beginInEditMode: Bool = false
+    /// Called once the row has entered edit mode, so the parent can drop the
+    /// "new task" flag and avoid re-triggering on later reappearances.
+    var onBeginEdit: () -> Void = {}
     let onToggle: () -> Void
     var onDelete: (() -> Void)? = nil
     var onRename: (String) -> Void = { _ in }
@@ -30,12 +36,17 @@ struct TaskDetailRow: View {
             .accessibilityLabel(isCompleted ? "Mark \(task.name) as active" : "Mark \(task.name) as completed")
 
             if isRenaming {
-                TextField("", text: $renameText)
+                TextField("Task name…", text: $renameText)
                     .font(.subheadline)
                     .textFieldStyle(.plain)
                     .focused($fieldFocused)
                     .onSubmit { commitRename() }
-                    .onExitCommand { isRenaming = false }
+                    .onExitCommand { cancelRename() }
+                    .onChange(of: fieldFocused) { _, focused in
+                        // Clicking away commits, mirroring how new-item naming
+                        // works elsewhere; an empty new task is then discarded.
+                        if !focused, isRenaming { commitRename() }
+                    }
             } else {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(task.name)
@@ -96,11 +107,34 @@ struct TaskDetailRow: View {
         } message: {
             Text("All time records for this task will be permanently deleted.")
         }
+        .onAppear { if beginInEditMode { startEditing() } }
+    }
+
+    /// Opens the row's inline editor and grabs the keyboard focus. Focus is set
+    /// asynchronously so it lands after the TextField has been inserted.
+    private func startEditing() {
+        guard !isRenaming else { return }
+        isRenaming = true
+        renameText = task.name
+        DispatchQueue.main.async { fieldFocused = true }
+        onBeginEdit()
     }
 
     private func commitRename() {
         let trimmed = renameText.trimmingCharacters(in: .whitespaces)
-        if !trimmed.isEmpty { onRename(trimmed) }
+        if trimmed.isEmpty {
+            // A brand-new task left blank is discarded rather than kept nameless.
+            if task.name.isEmpty { onDelete?() }
+        } else {
+            onRename(trimmed)
+        }
+        isRenaming = false
+        renameText = ""
+    }
+
+    private func cancelRename() {
+        // Escaping out of a never-named task discards it too.
+        if task.name.isEmpty { onDelete?() }
         isRenaming = false
         renameText = ""
     }

@@ -3,13 +3,17 @@ import SwiftUI
 struct TaskListPanel: View {
     let viewModel: ProjectDetailViewModel
     @Binding var selectedTaskID: Task.ID?
-    @Binding var newTaskName: String
     @State private var errorMessage: String?
     @Environment(TimeRoundingSettings.self) private var roundingSettings
 
     /// Completed tasks start folded away to keep the focus on active work. Session-only
     /// by design — resets to collapsed when the view is rebuilt (e.g. switching projects).
     @State private var showCompleted = false
+
+    /// Id of a freshly added task that should open in inline rename mode with the
+    /// keyboard focus, so the user types its name right in the list. Cleared once
+    /// the row has taken focus.
+    @State private var editingNewTaskID: Task.ID?
 
     /// Per-task display durations, rounded together (active tasks then completed,
     /// matching display order) so every task row adds up to the "Total tracked" card.
@@ -28,57 +32,75 @@ struct TaskListPanel: View {
                     ProjectSummaryCard(label: "This week", value: roundingSettings.display(viewModel.thisWeekDuration).shortFormatted)
                     ProjectSummaryCard(label: "Active tasks", value: "\(viewModel.activeTasks.count)")
                 }
-                HStack {
-                    TextField("New task name…", text: $newTaskName)
-                        .textFieldStyle(.roundedBorder)
-                        .onSubmit { addTask() }
-                    Button("Add") { addTask() }
-                        .disabled(newTaskName.trimmingCharacters(in: .whitespaces).isEmpty)
-                }
             }
             .padding(20)
 
             Divider()
 
-            if !viewModel.hasTasks {
-                ContentUnavailableView(
-                    "No tasks yet",
-                    systemImage: "checklist",
-                    description: Text("Add a task above to start tracking.")
-                )
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                // A real List(selection:) so keyboard focus lives with the tasks:
-                // arrow keys move between rows (across the Active and Completed
-                // groups) instead of leaking to the sidebar's project list.
-                List(selection: $selectedTaskID) {
-                    if !viewModel.activeTasks.isEmpty {
-                        Section {
-                            ForEach(viewModel.activeTasks) { task in
-                                taskRow(task, isCompleted: false, displayDuration: displayDurations[task.id])
-                            }
-                        } header: {
-                            sectionHeader("Active tasks")
+            // A real List(selection:) so keyboard focus lives with the tasks:
+            // arrow keys move between rows (across the Active and Completed
+            // groups) instead of leaking to the sidebar's project list.
+            List(selection: $selectedTaskID) {
+                // Always show the Active tasks section so the heading — and its
+                // "+" add button — stay put even when there are no active tasks
+                // (or no tasks at all). An empty placeholder keeps the absence
+                // of active work explicit.
+                Section {
+                    if viewModel.activeTasks.isEmpty {
+                        emptyActiveTasksRow
+                    } else {
+                        ForEach(viewModel.activeTasks) { task in
+                            taskRow(task, isCompleted: false, displayDuration: displayDurations[task.id])
                         }
                     }
+                } header: {
+                    activeTasksHeader
+                }
 
-                    if !viewModel.completedTasks.isEmpty {
-                        Section {
-                            completedHeader
+                if !viewModel.completedTasks.isEmpty {
+                    Section {
+                        completedHeader
 
-                            if showCompleted {
-                                ForEach(viewModel.completedTasks) { task in
-                                    taskRow(task, isCompleted: true, displayDuration: displayDurations[task.id])
-                                }
+                        if showCompleted {
+                            ForEach(viewModel.completedTasks) { task in
+                                taskRow(task, isCompleted: true, displayDuration: displayDurations[task.id])
                             }
                         }
                     }
                 }
-                .listStyle(.inset)
-                .scrollContentBackground(.hidden)
             }
+            .listStyle(.inset)
+            .scrollContentBackground(.hidden)
         }
         .errorAlert($errorMessage)
+    }
+
+    /// Placeholder shown under the Active tasks header when no task is active,
+    /// so the section never collapses out of view. Carries no selection tag,
+    /// so List arrow navigation skips it.
+    private var emptyActiveTasksRow: some View {
+        Text("No active tasks")
+            .font(.subheadline)
+            .foregroundStyle(.tertiary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .listRowSeparator(.hidden)
+            .accessibilityLabel("No active tasks")
+    }
+
+    /// Active tasks header carrying the "+" button: tapping it creates a blank
+    /// task and drops the keyboard focus into its row for inline naming.
+    private var activeTasksHeader: some View {
+        HStack(spacing: 6) {
+            sectionHeader("Active tasks")
+            Spacer()
+            Button(action: addTask) {
+                Image(systemName: "plus")
+                    .font(.subheadline.weight(.semibold))
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+            .accessibilityLabel("Add task")
+        }
     }
 
     private func sectionHeader(_ title: String) -> some View {
@@ -124,6 +146,8 @@ struct TaskListPanel: View {
             task: task,
             isCompleted: isCompleted,
             displayDuration: displayDuration,
+            beginInEditMode: task.id == editingNewTaskID,
+            onBeginEdit: { editingNewTaskID = nil },
             onToggle: { do { try viewModel.toggleStatus(task) } catch { errorMessage = error.localizedDescription } },
             onDelete: {
                 if selectedTaskID == task.id { selectedTaskID = nil }
@@ -135,11 +159,15 @@ struct TaskListPanel: View {
         .tag(task.id)
     }
 
+    /// Adds a blank task and hands keyboard focus to its row so the user types
+    /// the name inline. A task left unnamed is discarded by the row itself.
     private func addTask() {
-        let name = newTaskName.trimmingCharacters(in: .whitespaces)
-        guard !name.isEmpty else { return }
-        do { try viewModel.addTask(named: name) } catch { errorMessage = error.localizedDescription }
-        newTaskName = ""
+        do {
+            let task = try viewModel.addTask()
+            editingNewTaskID = task.id
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 }
 

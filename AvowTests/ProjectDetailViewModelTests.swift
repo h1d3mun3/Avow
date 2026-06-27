@@ -11,7 +11,11 @@ final class MockTaskRepository: TaskRepository {
     var deletedTasks: [Task] = []
     var renamedTasks: [(Task, String)] = []
 
-    func add(named name: String, to project: Project) throws { addedNames.append(name) }
+    @discardableResult
+    func add(named name: String, to project: Project) throws -> Task {
+        addedNames.append(name)
+        return Task(name: name, project: project)
+    }
     func updateStatus(_ task: Task, to status: TaskStatus) throws { updatedStatuses.append((task, status)) }
     func rename(_ task: Task, to name: String) throws { renamedTasks.append((task, name)) }
     func delete(_ task: Task) throws { deletedTasks.append(task) }
@@ -160,6 +164,19 @@ struct ProjectDetailViewModelTests {
         try vm.addTask(named: "New Task")
 
         #expect(repo.addedNames == ["New Task"])
+    }
+
+    @Test func addTask_defaultsToEmptyNameForInlineNaming() throws {
+        let context = try makeInMemoryContext()
+        let project = Project(name: "P")
+        context.insert(project)
+
+        let repo = MockTaskRepository()
+        let vm = ProjectDetailViewModel(project: project, taskRepository: repo)
+        let task = try vm.addTask()
+
+        #expect(repo.addedNames == [""])
+        #expect(task.name == "")
     }
 
     @Test func toggleStatus_activeTask_callsRepositoryWithCompleted() throws {
