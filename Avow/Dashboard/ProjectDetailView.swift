@@ -2,7 +2,6 @@ import SwiftUI
 
 struct ProjectDetailView: View {
     @State private var viewModel: ProjectDetailViewModel
-    @State private var newTaskName = ""
     @State private var selectedTaskID: Task.ID?
 
     init(project: Project, taskRepository: any TaskRepository) {
@@ -14,7 +13,7 @@ struct ProjectDetailView: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            TaskListPanel(viewModel: viewModel, selectedTaskID: $selectedTaskID, newTaskName: $newTaskName)
+            TaskListPanel(viewModel: viewModel, selectedTaskID: $selectedTaskID)
             if let task = viewModel.task(withID: selectedTaskID) {
                 Divider()
                 // .id ties the panel's @Query filter to the selected task,

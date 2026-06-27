@@ -17,8 +17,6 @@ final class ProjectDetailViewModel {
 
     var projectName: String { project.name }
 
-    var hasTasks: Bool { !project.tasks.isEmpty }
-
     var activeTasks: [Task] {
         project.tasks
             .filter { $0.status == .active }
@@ -52,7 +50,11 @@ final class ProjectDetailViewModel {
 
     // MARK: - Mutations
 
-    func addTask(named name: String) throws {
+    /// Creates a task and returns it so the caller can immediately focus the new
+    /// row for inline naming. Defaults to an empty name: the "+" button adds a
+    /// blank task that the user types a name into right in the list.
+    @discardableResult
+    func addTask(named name: String = "") throws -> Task {
         try taskRepository.add(named: name, to: project)
     }
 

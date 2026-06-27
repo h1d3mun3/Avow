@@ -50,10 +50,12 @@ struct SwiftDataProjectRepository: ProjectRepository {
 struct SwiftDataTaskRepository: TaskRepository {
     let context: ModelContext
 
-    func add(named name: String, to project: Project) throws {
+    @discardableResult
+    func add(named name: String, to project: Project) throws -> Task {
         let task = Task(name: name, project: project)
         context.insert(task)
         try context.save()
+        return task
     }
 
     func updateStatus(_ task: Task, to status: TaskStatus) throws {
