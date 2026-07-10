@@ -8,7 +8,7 @@ struct FacetDetailView: View {
     @Environment(TimeRoundingSettings.self) private var roundingSettings
 
     private var tasks: [Task] {
-        facet.tasks.sorted { $0.totalDuration > $1.totalDuration }
+        facet.tasksInActiveProjects.sorted { $0.totalDuration > $1.totalDuration }
     }
 
     var body: some View {
