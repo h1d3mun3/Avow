@@ -27,12 +27,21 @@ extension Task {
 }
 
 extension Facet {
-    /// All time entries across the tasks carrying this facet.
-    var allTimeEntries: [TimeEntry] {
-        tasks.flatMap(\.timeEntries)
+    /// Tasks carrying this facet whose project exists and is not archived.
+    ///
+    /// Mirrors the app-wide convention (see `SidebarViewModel`/`OverviewViewModel`) of
+    /// excluding archived projects from current aggregate totals, and (see
+    /// `MenuBarViewModel.tasksByProject`) of dropping tasks with no project.
+    var tasksInActiveProjects: [Task] {
+        tasks.filter { $0.project.map { !$0.isArchived } ?? false }
     }
 
-    /// Total tracked duration across all tasks carrying this facet.
+    /// All time entries across the tasks carrying this facet, excluding archived projects.
+    var allTimeEntries: [TimeEntry] {
+        tasksInActiveProjects.flatMap(\.timeEntries)
+    }
+
+    /// Total tracked duration across all tasks carrying this facet, excluding archived projects.
     var totalDuration: TimeInterval {
         allTimeEntries.totalDuration
     }

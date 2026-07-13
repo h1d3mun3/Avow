@@ -119,4 +119,81 @@ struct TimeEntryAggregationTests {
 
         #expect(facet.totalDuration == 0)
     }
+
+    @Test func facetTotalDuration_excludesTasksUnderArchivedProjects() throws {
+        let context = try makeInMemoryContext()
+        let active = Project(name: "Active")
+        let archived = Project(name: "Archived")
+        archived.isArchived = true
+        [active, archived].forEach { context.insert($0) }
+        let activeTask = Task(name: "A", project: active)
+        let archivedTask = Task(name: "B", project: archived)
+        [activeTask, archivedTask].forEach { context.insert($0) }
+        let facet = Facet(name: "bullshit-job")
+        context.insert(facet)
+        activeTask.facets = [facet]
+        archivedTask.facets = [facet]
+
+        _ = finishedEntry(start: 0, end: 3600, task: activeTask, context: context)
+        // Entry on a task whose project is archived must not count toward the facet total.
+        _ = finishedEntry(start: 0, end: 9000, task: archivedTask, context: context)
+
+        #expect(facet.totalDuration == 3600)
+    }
+
+    // MARK: - Facet.tasksInActiveProjects
+
+    @Test func facetTasksInActiveProjects_excludesTasksUnderArchivedProjects() throws {
+        let context = try makeInMemoryContext()
+        let active = Project(name: "Active")
+        let archived = Project(name: "Archived")
+        archived.isArchived = true
+        [active, archived].forEach { context.insert($0) }
+        let activeTask = Task(name: "A", project: active)
+        let archivedTask = Task(name: "B", project: archived)
+        [activeTask, archivedTask].forEach { context.insert($0) }
+        let facet = Facet(name: "bullshit-job")
+        context.insert(facet)
+        activeTask.facets = [facet]
+        archivedTask.facets = [facet]
+
+        #expect(facet.tasksInActiveProjects.map(\.name) == ["A"])
+    }
+
+    @Test func facetTasksInActiveProjects_dropsNilProjectTasks() throws {
+        let context = try makeInMemoryContext()
+        let project = Project(name: "P")
+        context.insert(project)
+        let kept = Task(name: "Kept", project: project)
+        let orphan = Task(name: "Orphan", project: project)
+        [kept, orphan].forEach { context.insert($0) }
+        // Detach so it has no project, mirroring MenuBarViewModelTests.tasksByProject_dropsNilProjectTasks.
+        orphan.project = nil
+        let facet = Facet(name: "bullshit-job")
+        context.insert(facet)
+        kept.facets = [facet]
+        orphan.facets = [facet]
+
+        #expect(facet.tasksInActiveProjects.map(\.name) == ["Kept"])
+    }
+
+    @Test func facetTotalDuration_excludesNilProjectTasks() throws {
+        let context = try makeInMemoryContext()
+        let project = Project(name: "P")
+        context.insert(project)
+        let kept = Task(name: "Kept", project: project)
+        let orphan = Task(name: "Orphan", project: project)
+        [kept, orphan].forEach { context.insert($0) }
+        orphan.project = nil
+        let facet = Facet(name: "bullshit-job")
+        context.insert(facet)
+        kept.facets = [facet]
+        orphan.facets = [facet]
+
+        _ = finishedEntry(start: 0, end: 3600, task: kept, context: context)
+        // Entry on a task with no project must not count toward the facet total.
+        _ = finishedEntry(start: 0, end: 9000, task: orphan, context: context)
+
+        #expect(facet.totalDuration == 3600)
+    }
 }
