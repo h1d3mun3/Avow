@@ -1,0 +1,148 @@
+name: Release DMG
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Tag or ref to build (for manual test runs)"
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  APPLE_TEAM_ID: 9UHBV5AP46
+
+jobs:
+  build-sign-notarize:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+
+      - name: Derive version from tag
+        run: |
+          REF_NAME="${{ inputs.ref || github.ref_name }}"
+          echo "VERSION=${REF_NAME#v}" >> "$GITHUB_ENV"
+
+      - name: Import signing certificate into an ephemeral keychain
+        env:
+          MACOS_CERTIFICATE_P12_BASE64: ${{ secrets.MACOS_CERTIFICATE_P12_BASE64 }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          KEYCHAIN_PASSWORD="$(openssl rand -base64 32)"
+          KEYCHAIN_PATH="$RUNNER_TEMP/signing.keychain-db"
+          CERT_PATH="$RUNNER_TEMP/certificate.p12"
+
+          echo -n "$MACOS_CERTIFICATE_P12_BASE64" | base64 --decode -o "$CERT_PATH"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 1800 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -P "$MACOS_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          EXISTING_KEYCHAINS="$(security list-keychains -d user | sed 's/[[:space:]]*"\(.*\)"/\1/')"
+          security list-keychains -d user -s "$KEYCHAIN_PATH" $EXISTING_KEYCHAINS
+          security default-keychain -s "$KEYCHAIN_PATH"
+
+          rm -f "$CERT_PATH"
+          echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
+
+      - name: Archive
+        run: |
+          set -euo pipefail
+          xcodebuild archive \
+            -project Avow.xcodeproj \
+            -scheme Avow \
+            -configuration Release \
+            -archivePath "$RUNNER_TEMP/Avow.xcarchive" \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Developer ID Application" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID"
+
+      - name: Export signed .app (Developer ID)
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>developer-id</string>
+              <key>teamID</key>
+              <string>$APPLE_TEAM_ID</string>
+              <key>signingStyle</key>
+              <string>manual</string>
+          </dict>
+          </plist>
+          PLIST
+
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/Avow.xcarchive" \
+            -exportPath "$RUNNER_TEMP/export" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist"
+
+      - name: Verify exported version matches the tag
+        run: |
+          set -euo pipefail
+          APP_PATH="$RUNNER_TEMP/export/Avow.app"
+          APP_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP_PATH/Contents/Info.plist")"
+          if [ "$APP_VERSION" != "$VERSION" ]; then
+            echo "::error::Tag v$VERSION does not match CFBundleShortVersionString $APP_VERSION. Bump MARKETING_VERSION before tagging."
+            exit 1
+          fi
+
+      - name: Notarize
+        env:
+          APPSTORECONNECT_KEY_ID: ${{ secrets.APPSTORECONNECT_KEY_ID }}
+          APPSTORECONNECT_ISSUER_ID: ${{ secrets.APPSTORECONNECT_ISSUER_ID }}
+          APPSTORECONNECT_API_KEY_P8_BASE64: ${{ secrets.APPSTORECONNECT_API_KEY_P8_BASE64 }}
+        run: |
+          set -euo pipefail
+          KEY_PATH="$RUNNER_TEMP/AuthKey_${APPSTORECONNECT_KEY_ID}.p8"
+          echo -n "$APPSTORECONNECT_API_KEY_P8_BASE64" | base64 --decode -o "$KEY_PATH"
+
+          ditto -c -k --keepParent "$RUNNER_TEMP/export/Avow.app" "$RUNNER_TEMP/Avow.zip"
+
+          xcrun notarytool submit "$RUNNER_TEMP/Avow.zip" \
+            --key "$KEY_PATH" \
+            --key-id "$APPSTORECONNECT_KEY_ID" \
+            --issuer "$APPSTORECONNECT_ISSUER_ID" \
+            --wait
+
+          xcrun stapler staple "$RUNNER_TEMP/export/Avow.app"
+          rm -f "$KEY_PATH"
+
+      - name: Package DMG
+        run: ./scripts/package-dmg.sh "$RUNNER_TEMP/export/Avow.app"
+
+      - name: Verify signature and notarization
+        run: |
+          set -euo pipefail
+          spctl -a -vvv --type install "$RUNNER_TEMP/export/Avow.app"
+          spctl -a -vvv --type open "Avow-${VERSION}.dmg"
+
+      - name: Remove ephemeral keychain
+        if: always()
+        run: security delete-keychain "$KEYCHAIN_PATH" || true
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.VERSION }}
+          files: Avow-${{ env.VERSION }}.dmg
+          generate_release_notes: true
+          draft: false
