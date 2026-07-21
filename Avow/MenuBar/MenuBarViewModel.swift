@@ -10,7 +10,10 @@ final class MenuBarViewModel {
     private var activeTasks: [Task] { tasks.filter { $0.status == .active } }
     var filteredTasks: [Task] {
         filterText.isEmpty ? activeTasks
-            : activeTasks.filter { $0.name.localizedCaseInsensitiveContains(filterText) }
+            : activeTasks.filter {
+                $0.name.localizedCaseInsensitiveContains(filterText)
+                    || ($0.project?.name.localizedCaseInsensitiveContains(filterText) ?? false)
+            }
     }
     var tasksByProject: [(project: Project, tasks: [Task])] {
         let grouped = Dictionary(grouping: filteredTasks) { $0.project }
