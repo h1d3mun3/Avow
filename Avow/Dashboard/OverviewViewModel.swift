@@ -75,7 +75,10 @@ final class OverviewViewModel {
 
     private var searchResults: [Task] {
         allActiveTasks
-            .filter { $0.name.localizedCaseInsensitiveContains(quickStartFilter) }
+            .filter {
+                $0.name.localizedCaseInsensitiveContains(quickStartFilter)
+                    || ($0.project?.name.localizedCaseInsensitiveContains(quickStartFilter) ?? false)
+            }
             .sorted { $0.name < $1.name }
     }
 }

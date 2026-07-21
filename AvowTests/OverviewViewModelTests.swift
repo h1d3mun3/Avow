@@ -239,6 +239,23 @@ struct OverviewViewModelTests {
         #expect(vm.quickStartTasks.map(\.name) == ["Alpha work", "Beta work"])
     }
 
+    @Test func quickStartTasks_filterMatchesProjectNameAcrossAllItsTasks() throws {
+        let context = try makeInMemoryContext()
+        let projectA = Project(name: "Alpha")
+        let projectB = Project(name: "Beta")
+        [projectA, projectB].forEach { context.insert($0) }
+        let a = Task(name: "a", project: projectA)
+        let b = Task(name: "b", project: projectA)
+        let other = Task(name: "c", project: projectB)
+        [a, b, other].forEach { context.insert($0) }
+
+        let vm = OverviewViewModel()
+        vm.update(projects: [projectA, projectB])
+        vm.quickStartFilter = "Alpha"
+
+        #expect(vm.quickStartTasks.map(\.name) == ["a", "b"])
+    }
+
     @Test func quickStartTasks_emptyFilter_ordersByMostRecentEntryDescending() throws {
         let context = try makeInMemoryContext()
         let project = Project(name: "P")

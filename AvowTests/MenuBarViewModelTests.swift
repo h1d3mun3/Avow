@@ -23,6 +23,23 @@ struct MenuBarViewModelTests {
         #expect(vm.filteredTasks.map(\.name) == ["Write Report"])
     }
 
+    @Test func filteredTasks_matchesProjectNameAcrossAllItsTasks() throws {
+        let context = try makeInMemoryContext()
+        let projectA = Project(name: "Alpha")
+        let projectB = Project(name: "Beta")
+        [projectA, projectB].forEach { context.insert($0) }
+        let a = Task(name: "a", project: projectA)
+        let b = Task(name: "b", project: projectA)
+        let other = Task(name: "c", project: projectB)
+        [a, b, other].forEach { context.insert($0) }
+
+        let vm = MenuBarViewModel()
+        vm.update(tasks: [a, b, other])
+        vm.filterText = "Alpha"
+
+        #expect(Set(vm.filteredTasks.map(\.name)) == ["a", "b"])
+    }
+
     @Test func filteredTasks_onlyActiveTasksIncluded() throws {
         let context = try makeInMemoryContext()
         let project = Project(name: "P")
