@@ -30,7 +30,7 @@ struct OverviewView: View {
         } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    HStack(spacing: 12) {
+                    HStack(alignment: .top, spacing: 12) {
                         OverviewSummaryCard(
                             label: "Total tracked",
                             value: roundingSettings.display(viewModel.totalDuration).shortFormatted,
@@ -47,6 +47,7 @@ struct OverviewView: View {
                             sub: ""
                         )
                     }
+                    .fixedSize(horizontal: false, vertical: true)
 
                     QuickStartSection(viewModel: viewModel)
 
@@ -79,7 +80,10 @@ private struct OverviewSummaryCard: View {
                     .foregroundStyle(.tertiary)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        // Cards sit side by side and not all of them have a `sub` line, so let
+        // each one stretch to the tallest of the row instead of shrinking to
+        // its own content.
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .padding(12)
         .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 8))
     }
