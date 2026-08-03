@@ -3,19 +3,25 @@ import SwiftData
 
 struct DailyTimelineView: View {
     let date: Date
+    let filter: CalendarEntryFilter
 
-    @Query private var entries: [TimeEntry]
+    @Query private var allEntries: [TimeEntry]
     @Environment(TimeRoundingSettings.self) private var roundingSettings
 
-    init(date: Date) {
+    init(date: Date, filter: CalendarEntryFilter) {
         self.date = date
+        self.filter = filter
         let (start, end) = DateWindows().dayBounds(for: date)
-        _entries = Query(
+        _allEntries = Query(
             filter: #Predicate<TimeEntry> { entry in
                 entry.startDate >= start && entry.startDate < end
             },
             sort: \.startDate
         )
+    }
+
+    private var entries: [TimeEntry] {
+        allEntries.filtered(by: filter)
     }
 
     private var totalDuration: TimeInterval {
