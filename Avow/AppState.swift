@@ -9,6 +9,17 @@ final class AppState {
     /// Incremented every second while tracking, to trigger SwiftUI updates.
     var tick: UInt64 = 0
 
+    /// Fired synchronously whenever `activeEntry` changes (start, stop, switch, restore). Lets
+    /// non-SwiftUI observers (MenuBarStatusController's AppKit-driven status item) refresh
+    /// immediately instead of waiting for their own poll interval.
+    var onActiveEntryChange: (() -> Void)?
+
+    /// Fired synchronously on the same 1s timer tick that increments `tick`. Lets non-SwiftUI
+    /// observers stay in lockstep with the SwiftUI views that read `liveDuration` instead of
+    /// running their own, independently-phased poll timer (which would visibly drift out of sync
+    /// with the SwiftUI-rendered clocks by up to ~1s).
+    var onTick: (() -> Void)?
+
     private let clock: any AppClock
     private let timeEntries: any TimeEntryRepository
     private var clockToken: ClockToken?
@@ -41,6 +52,7 @@ final class AppState {
         activeEntry = try? timeEntries.start(task: task)
 
         startDisplayTimer()
+        onActiveEntryChange?()
     }
 
     /// Stop the currently running entry.
@@ -51,6 +63,7 @@ final class AppState {
         activeEntry = nil
 
         stopDisplayTimer()
+        onActiveEntryChange?()
     }
 
     /// Switch to a different task (stop current, start new).
@@ -64,6 +77,7 @@ final class AppState {
         stopDisplayTimer()
         clockToken = clock.scheduleRepeating(interval: 1.0) { [weak self] in
             self?.tick += 1
+            self?.onTick?()
         }
     }
 
@@ -80,6 +94,7 @@ final class AppState {
         if let running = try? timeEntries.fetchRunning() {
             activeEntry = running
             startDisplayTimer()
+            onActiveEntryChange?()
         }
     }
 }
