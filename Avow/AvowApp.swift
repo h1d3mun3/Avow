@@ -155,7 +155,7 @@ struct MenuBarLabel: View {
         HStack(spacing: 4) {
             if let entry = appState.activeEntry {
                 Text(appState.liveDuration(of: entry).timerFormatted)
-                    .fontDesign(.monospaced)
+                    .monospacedDigit()
                     // Reserve a stable width so the status item doesn't reflow every tick
                     // (unreserved width causes MenuBarExtra to flicker in/out of the menu bar overflow).
                     .frame(width: 64, alignment: .trailing)
