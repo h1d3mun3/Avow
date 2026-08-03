@@ -19,7 +19,6 @@ final class MenuBarStatusController: NSObject, NSWindowDelegate {
 
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private var panel: NSPanel?
-    private var updateTimer: Timer?
 
     init(
         modelContainer: ModelContainer,
@@ -36,20 +35,13 @@ final class MenuBarStatusController: NSObject, NSWindowDelegate {
         configureButton()
         refreshButton()
 
-        // Refresh immediately on start/stop/switch so those feel instant, instead of waiting for
-        // the next second-boundary tick below.
+        // Piggyback on AppState's own 1s timer instead of running an independent one: two
+        // separately-scheduled Timers each firing "once a second" still land at different offsets
+        // within the second, so the menu bar's digits and the SwiftUI-rendered ones (NowPlayingView,
+        // QuickStartSection) would visibly update at slightly different moments. Sharing the same
+        // timer tick keeps every clock in the app in lockstep.
         appState.onActiveEntryChange = { [weak self] in self?.refreshButton() }
-
-        // Still poll once a second for the elapsed-time digits themselves, since those change
-        // continuously while tracking and AppState has no per-second change notification.
-        let timer = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
-            // `Task` here would otherwise resolve to the SwiftData `Task` model, not _Concurrency.Task.
-            _Concurrency.Task { @MainActor in
-                self?.refreshButton()
-            }
-        }
-        RunLoop.main.add(timer, forMode: .common)
-        updateTimer = timer
+        appState.onTick = { [weak self] in self?.refreshButton() }
     }
 
     // MARK: - Button
