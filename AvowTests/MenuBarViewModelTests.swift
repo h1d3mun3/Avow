@@ -55,6 +55,22 @@ struct MenuBarViewModelTests {
         #expect(vm.filteredTasks.map(\.name) == ["Active"])
     }
 
+    @Test func filteredTasks_excludesTasksInArchivedProjects() throws {
+        let context = try makeInMemoryContext()
+        let active = Project(name: "Active Project")
+        let archived = Project(name: "Archived Project")
+        archived.isArchived = true
+        [active, archived].forEach { context.insert($0) }
+        let keep = Task(name: "Keep", project: active)
+        let hide = Task(name: "Hide", project: archived)
+        [keep, hide].forEach { context.insert($0) }
+
+        let vm = MenuBarViewModel()
+        vm.update(tasks: [keep, hide])
+
+        #expect(vm.filteredTasks.map(\.name) == ["Keep"])
+    }
+
     // MARK: - tasksByProject
 
     @Test func tasksByProject_dropsNilProjectTasks() throws {
