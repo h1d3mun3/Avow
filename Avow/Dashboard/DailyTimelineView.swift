@@ -3,12 +3,12 @@ import SwiftData
 
 struct DailyTimelineView: View {
     let date: Date
-    let filter: ProjectFilter
+    let filter: CalendarEntryFilter
 
     @Query private var allEntries: [TimeEntry]
     @Environment(TimeRoundingSettings.self) private var roundingSettings
 
-    init(date: Date, filter: ProjectFilter) {
+    init(date: Date, filter: CalendarEntryFilter) {
         self.date = date
         self.filter = filter
         let (start, end) = DateWindows().dayBounds(for: date)

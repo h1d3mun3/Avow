@@ -4,7 +4,7 @@ import SwiftData
 struct CalendarSidebarSection: View {
     let selectedDate: Date?
     let onSelectDate: (Date) -> Void
-    let filter: ProjectFilter
+    let filter: CalendarEntryFilter
 
     @Query private var allEntries: [TimeEntry]
 
