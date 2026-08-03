@@ -3,7 +3,7 @@ import SwiftData
 
 /// Lets the user narrow the Calendar tab down to a single project and/or
 /// facet at a time, tab-style: click an item to highlight it and filter down
-/// to it, click "All" to clear the filter.
+/// to it, click it again (or "All") to clear the filter.
 struct CalendarFilterSection: View {
     @Binding var projectID: UUID?
     @Binding var facetID: UUID?
@@ -59,7 +59,7 @@ struct CalendarFilterSection: View {
 
             ForEach(items, id: \.id) { item in
                 CalendarFilterRow(label: item.name, isSelected: selection.wrappedValue == item.id) {
-                    selection.wrappedValue = item.id
+                    selection.wrappedValue = selection.wrappedValue == item.id ? nil : item.id
                 }
             }
         }
