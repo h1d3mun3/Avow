@@ -33,18 +33,15 @@ struct OverviewView: View {
                     HStack(spacing: 12) {
                         OverviewSummaryCard(
                             label: "Total tracked",
-                            value: roundingSettings.display(viewModel.totalDuration).shortFormatted,
-                            sub: "\(viewModel.activeProjects.count) projects"
+                            value: roundingSettings.display(viewModel.totalDuration).shortFormatted
                         )
                         OverviewSummaryCard(
                             label: "This week",
-                            value: roundingSettings.display(viewModel.thisWeekDuration).shortFormatted,
-                            sub: ""
+                            value: roundingSettings.display(viewModel.thisWeekDuration).shortFormatted
                         )
                         OverviewSummaryCard(
                             label: "Today",
-                            value: roundingSettings.display(viewModel.todayDuration).shortFormatted,
-                            sub: ""
+                            value: roundingSettings.display(viewModel.todayDuration).shortFormatted
                         )
                     }
 
@@ -62,7 +59,6 @@ struct OverviewView: View {
 private struct OverviewSummaryCard: View {
     let label: String
     let value: String
-    let sub: String
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -73,11 +69,6 @@ private struct OverviewSummaryCard: View {
                 .font(.title2)
                 .fontWeight(.medium)
                 .monospacedDigit()
-            if !sub.isEmpty {
-                Text(sub)
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
