@@ -52,7 +52,9 @@ final class OverviewViewModel {
 
     var projectBreakdown: [(project: Project, duration: TimeInterval, fraction: Double)] {
         let total = totalDuration
-        return activeProjects.map { (project: $0, duration: $0.totalDuration, fraction: total > 0 ? $0.totalDuration / total : 0) }
+        return activeProjects
+            .map { (project: $0, duration: $0.totalDuration, fraction: total > 0 ? $0.totalDuration / total : 0) }
+            .sorted { $0.duration > $1.duration }
     }
 
     var quickStartTasks: [Task] {
