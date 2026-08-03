@@ -15,6 +15,8 @@ final class Project {
     @Relationship(deleteRule: .cascade, inverse: \Task.project)
     var tasks: [Task]
 
+    var projectGroups: [ProjectGroup]
+
     init(name: String, sortOrder: Int = 0) {
         self.id = UUID()
         self.name = name
@@ -23,5 +25,6 @@ final class Project {
         self.createdAt = .now
         self.updatedAt = .now
         self.tasks = []
+        self.projectGroups = []
     }
 }

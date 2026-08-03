@@ -38,4 +38,18 @@ struct DataAdminServiceTests {
 
         #expect(try context.fetch(FetchDescriptor<Facet>()).isEmpty)
     }
+
+    @Test func deleteAllData_removesProjectGroups() throws {
+        let context = try makeInMemoryContext()
+        let project = Project(name: "Project")
+        context.insert(project)
+        let group = ProjectGroup(name: "Client A")
+        context.insert(group)
+        project.projectGroups.append(group)
+        try context.save()
+
+        try DataAdminService(context: context).deleteAllData()
+
+        #expect(try context.fetch(FetchDescriptor<ProjectGroup>()).isEmpty)
+    }
 }

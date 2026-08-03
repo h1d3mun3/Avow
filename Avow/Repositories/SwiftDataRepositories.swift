@@ -127,6 +127,57 @@ struct SwiftDataFacetRepository: FacetRepository {
     }
 }
 
+struct SwiftDataProjectGroupRepository: ProjectGroupRepository {
+    let context: ModelContext
+
+    func allProjectGroupsSortedByName() throws -> [ProjectGroup] {
+        try context.fetch(FetchDescriptor<ProjectGroup>(sortBy: [SortDescriptor(\ProjectGroup.name)]))
+    }
+
+    func findOrCreate(named name: String) throws -> ProjectGroup {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let existing = try context.fetch(
+            FetchDescriptor<ProjectGroup>(predicate: #Predicate { $0.name == trimmed })
+        ).first
+        if let existing { return existing }
+        let group = ProjectGroup(name: trimmed)
+        context.insert(group)
+        try context.save()
+        return group
+    }
+
+    func rename(_ group: ProjectGroup, to name: String) throws {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, trimmed != group.name else { return }
+        let existing = try context.fetch(
+            FetchDescriptor<ProjectGroup>(predicate: #Predicate { $0.name == trimmed })
+        ).first
+        if let existing, existing.id != group.id {
+            throw ProjectGroupRepositoryError.duplicateName(trimmed)
+        }
+        group.name = trimmed
+        try context.save()
+    }
+
+    func attach(_ group: ProjectGroup, to project: Project) throws {
+        guard !project.projectGroups.contains(where: { $0.id == group.id }) else { return }
+        project.projectGroups.append(group)
+        project.updatedAt = .now
+        try context.save()
+    }
+
+    func detach(_ group: ProjectGroup, from project: Project) throws {
+        project.projectGroups.removeAll { $0.id == group.id }
+        project.updatedAt = .now
+        try context.save()
+    }
+
+    func delete(_ group: ProjectGroup) throws {
+        context.delete(group)
+        try context.save()
+    }
+}
+
 struct SwiftDataTimeEntryRepository: TimeEntryRepository {
     let context: ModelContext
 

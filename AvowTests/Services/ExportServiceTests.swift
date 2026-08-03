@@ -182,9 +182,10 @@ struct ExportServiceTests {
         decoder.dateDecodingStrategy = .iso8601
         let decoded = try decoder.decode(ExportSchema.self, from: data)
         #expect(decoded.version == ExportSchema.version)
-        #expect(decoded.version == 2)
+        #expect(decoded.version == 3)
         #expect(decoded.projects.isEmpty)
         #expect(decoded.facets.isEmpty)
+        #expect(decoded.projectGroups.isEmpty)
     }
 
     @Test func buildJSONData_includesProjectMetadata() throws {
@@ -301,6 +302,58 @@ struct ExportServiceTests {
         let decoded = try decoder.decode(ExportSchema.self, from: data)
 
         #expect(decoded.facets.map(\.name) == ["solo"])
+    }
+
+    @Test func buildJSONData_includesProjectGroupsAndProjectGroupIDs() throws {
+        let context = try makeInMemoryContext()
+        let project = Project(name: "P")
+        context.insert(project)
+        let group = ProjectGroup(name: "Client A")
+        context.insert(group)
+        project.projectGroups.append(group)
+        try context.save()
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let data = try service.buildJSONData(from: [project], projectGroups: [group])
+        let decoded = try decoder.decode(ExportSchema.self, from: data)
+
+        #expect(decoded.projectGroups.count == 1)
+        #expect(decoded.projectGroups[0].name == "Client A")
+        #expect(decoded.projects[0].projectGroupIDs == [group.id])
+    }
+
+    @Test func buildJSONData_exportsProjectGroupEvenWhenGroupListOmitted() throws {
+        let context = try makeInMemoryContext()
+        let project = Project(name: "P")
+        context.insert(project)
+        let group = ProjectGroup(name: "Client A")
+        context.insert(group)
+        project.projectGroups.append(group)
+        try context.save()
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        // projectGroups arg omitted: a project-attached group must still be exported (union).
+        let data = try service.buildJSONData(from: [project])
+        let decoded = try decoder.decode(ExportSchema.self, from: data)
+
+        #expect(decoded.projectGroups.map(\.name) == ["Client A"])
+    }
+
+    @Test func buildJSONData_includesStandaloneProjectGroup() throws {
+        let context = try makeInMemoryContext()
+        let group = ProjectGroup(name: "solo")
+        context.insert(group)
+        try context.save()
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        // A group attached to no project survives because it is passed in explicitly.
+        let data = try service.buildJSONData(from: [], projectGroups: [group])
+        let decoded = try decoder.decode(ExportSchema.self, from: data)
+
+        #expect(decoded.projectGroups.map(\.name) == ["solo"])
     }
 
     @Test func buildJSONData_usesInjectedTimestamp() throws {
