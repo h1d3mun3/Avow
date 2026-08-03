@@ -29,13 +29,17 @@ struct ImportServiceTests {
         facet.createdAt = createdAt
         source.insert(facet)
         task.facets.append(facet)
+        let group = ProjectGroup(name: "Client A")
+        group.createdAt = createdAt
+        source.insert(group)
+        project.projectGroups.append(group)
         let entry = TimeEntry(startDate: start, task: task)
         entry.endDate = end
         entry.createdAt = createdAt
         source.insert(entry)
         try source.save()
 
-        let data = try ExportService().buildJSONData(from: [project], facets: [facet])
+        let data = try ExportService().buildJSONData(from: [project], facets: [facet], projectGroups: [group])
 
         // Import into a fresh, empty store.
         let dest = try makeInMemoryContext()
@@ -63,9 +67,15 @@ struct ImportServiceTests {
         #expect(e.endDate == end)
         #expect(e.createdAt == createdAt)
 
+        #expect(p.projectGroups.map(\.name) == ["Client A"])
+
         let facets = try dest.fetch(FetchDescriptor<Facet>())
         #expect(facets.count == 1)
         #expect(facets.first?.id == facet.id)
+
+        let groups = try dest.fetch(FetchDescriptor<ProjectGroup>())
+        #expect(groups.count == 1)
+        #expect(groups.first?.id == group.id)
     }
 
     @Test func importJSON_mergeIsIdempotent() throws {
@@ -160,6 +170,32 @@ struct ImportServiceTests {
         #expect(task2.facets.first?.id == preExisting.id)
     }
 
+    @Test func importJSON_reconcilesProjectGroupByNameToAvoidDuplicate() throws {
+        // A group with the same name already exists under a different id.
+        let dest = try makeInMemoryContext()
+        let preExisting = ProjectGroup(name: "Client A")
+        dest.insert(preExisting)
+        try dest.save()
+
+        let source = try makeInMemoryContext()
+        let project = Project(name: "P")
+        source.insert(project)
+        let group = ProjectGroup(name: "Client A") // different id, same unique name
+        source.insert(group)
+        project.projectGroups.append(group)
+        try source.save()
+        let data = try ExportService().buildJSONData(from: [project], projectGroups: [group])
+
+        try ImportService(context: dest).importJSON(data, mode: .merge)
+
+        let groups = try dest.fetch(FetchDescriptor<ProjectGroup>())
+        #expect(groups.count == 1)
+        #expect(groups.first?.id == preExisting.id)
+        // The imported project should attach to the reconciled (pre-existing) group.
+        let project2 = try #require(try dest.fetch(FetchDescriptor<Project>()).first)
+        #expect(project2.projectGroups.first?.id == preExisting.id)
+    }
+
     // MARK: - Review-driven fixes
 
     @Test func importJSON_mergeUpdatesFacetMatchedById() throws {
@@ -194,18 +230,22 @@ struct ImportServiceTests {
         let facet = Facet(name: "Coding")
         dest.insert(facet)
         task.facets.append(facet)
+        let group = ProjectGroup(name: "Client A")
+        dest.insert(group)
+        project.projectGroups.append(group)
         let entry = TimeEntry(startDate: Date(timeIntervalSince1970: 1_700_000_000), task: task)
         entry.endDate = Date(timeIntervalSince1970: 1_700_003_600)
         dest.insert(entry)
         try dest.save()
 
-        let data = try ExportService().buildJSONData(from: [project], facets: [facet])
+        let data = try ExportService().buildJSONData(from: [project], facets: [facet], projectGroups: [group])
         try ImportService(context: dest).importJSON(data, mode: .replace)
 
         #expect(try dest.fetch(FetchDescriptor<Project>()).count == 1)
         #expect(try dest.fetch(FetchDescriptor<Task>()).count == 1)
         #expect(try dest.fetch(FetchDescriptor<TimeEntry>()).count == 1)
         #expect(try dest.fetch(FetchDescriptor<Facet>()).count == 1)
+        #expect(try dest.fetch(FetchDescriptor<ProjectGroup>()).count == 1)
     }
 
     @Test func importJSON_unsupportedFutureVersion_throwsFriendlyError() throws {

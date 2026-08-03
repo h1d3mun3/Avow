@@ -8,6 +8,7 @@ struct DashboardView: View {
         case calendar
         case project(Project)
         case facet(Facet)
+        case projectGroup(ProjectGroup)
         case settings
     }
 
@@ -28,6 +29,9 @@ struct DashboardView: View {
             case .facet(let facet):
                 FacetDetailView(facet: facet)
                     .id(facet.id)
+            case .projectGroup(let group):
+                ProjectGroupDetailView(group: group)
+                    .id(group.id)
             case .settings:
                 SettingsView()
             }

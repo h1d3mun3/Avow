@@ -101,6 +101,32 @@ struct ImportService {
             resolvedFacets[exported.id] = facet
         }
 
+        // Same resolve-by-id-then-name approach for project groups.
+        var groupsByID = mode == .replace ? [:] : try fetchByID(ProjectGroup.self, id: \.id)
+        var groupsByName = Dictionary(groupsByID.values.map { ($0.name, $0) }, uniquingKeysWith: { a, _ in a })
+
+        var resolvedGroups: [UUID: ProjectGroup] = [:]
+        for exported in schema.projectGroups {
+            let group: ProjectGroup
+            if let existing = groupsByID[exported.id] {
+                group = existing
+            } else if let existing = groupsByName[exported.name] {
+                group = existing
+            } else {
+                group = ProjectGroup(name: exported.name)
+                group.id = exported.id
+                context.insert(group)
+            }
+            if group.name != exported.name {
+                groupsByName[group.name] = nil
+            }
+            group.name = exported.name
+            group.createdAt = exported.createdAt
+            groupsByID[group.id] = group
+            groupsByName[group.name] = group
+            resolvedGroups[exported.id] = group
+        }
+
         var projectsByID = mode == .replace ? [:] : try fetchByID(Project.self, id: \.id)
         var tasksByID = mode == .replace ? [:] : try fetchByID(Task.self, id: \.id)
         var entriesByID = mode == .replace ? [:] : try fetchByID(TimeEntry.self, id: \.id)
@@ -120,6 +146,8 @@ struct ImportService {
             project.isArchived = exportedProject.isArchived
             project.createdAt = exportedProject.createdAt
             project.updatedAt = exportedProject.updatedAt
+            // Fall back to a store group by id if the file references one it didn't list.
+            project.projectGroups = exportedProject.projectGroupIDs.compactMap { resolvedGroups[$0] ?? groupsByID[$0] }
 
             for exportedTask in exportedProject.tasks {
                 let task: Task

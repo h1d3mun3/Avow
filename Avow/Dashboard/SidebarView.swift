@@ -12,6 +12,9 @@ struct SidebarView: View {
     @Query(sort: \Facet.name)
     private var facets: [Facet]
 
+    @Query(sort: \ProjectGroup.name)
+    private var projectGroups: [ProjectGroup]
+
     @State private var viewModel: SidebarViewModel
 
     @Binding var selection: DashboardView.SidebarItem?
@@ -23,9 +26,13 @@ struct SidebarView: View {
     @State private var showArchived = false
     @State private var showProjects = true
     @State private var showFacets = true
+    @State private var showProjectGroups = true
     @State private var projectToDelete: Project?
     @State private var renamingFacet: Facet?
     @State private var facetToDelete: Facet?
+    @State private var renamingProjectGroup: ProjectGroup?
+    @State private var projectGroupToDelete: ProjectGroup?
+    @State private var projectForGroupPicker: Project?
     @State private var errorMessage: String?
 
     init(selection: Binding<DashboardView.SidebarItem?>, projectRepository: any ProjectRepository) {
@@ -42,117 +49,10 @@ struct SidebarView: View {
                 Label("Calendar", systemImage: "calendar")
             }
 
-            Section("Projects", isExpanded: $showProjects) {
-                ForEach(viewModel.activeProjects) { project in
-                    NavigationLink(value: DashboardView.SidebarItem.project(project)) {
-                        HStack(spacing: 8) {
-                            if renamingProject?.id == project.id {
-                                TextField("", text: $renameText)
-                                    .textFieldStyle(.plain)
-                                    .focused($renameFieldFocused)
-                                    .onSubmit { commitRename() }
-                                    .onExitCommand { renamingProject = nil }
-                            } else {
-                                Text(project.name)
-                                Spacer()
-                                let total = roundingSettings.display(project.totalDuration)
-                                Text(total.shortFormatted)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .monospacedDigit()
-                            }
-                        }
-                    }
-                    .contextMenu {
-                        Button("Rename") {
-                            renamingProject = project
-                            renameText = project.name
-                            renameFieldFocused = true
-                        }
-                        Button("Archive") {
-                            if case .project(let selected) = selection, selected.id == project.id {
-                                selection = .overview
-                            }
-                            do { try repositories.project.archive(project) } catch { errorMessage = error.localizedDescription }
-                        }
-                        Divider()
-                        Button("Delete…", role: .destructive) {
-                            projectToDelete = project
-                        }
-                    }
-                }
-                .onMove(perform: moveProjects)
-            }
-
-            if !viewModel.archivedProjects.isEmpty {
-                Section {
-                    DisclosureGroup(isExpanded: $showArchived) {
-                        ForEach(viewModel.archivedProjects) { project in
-                            NavigationLink(value: DashboardView.SidebarItem.project(project)) {
-                                HStack(spacing: 8) {
-                                    Text(project.name)
-                                        .foregroundStyle(.secondary)
-                                    Spacer()
-                                    let total = roundingSettings.display(project.totalDuration)
-                                    Text(total.shortFormatted)
-                                        .font(.caption)
-                                        .foregroundStyle(.tertiary)
-                                        .monospacedDigit()
-                                }
-                            }
-                            .contextMenu {
-                                Button("Unarchive") {
-                                    do { try repositories.project.unarchive(project) } catch { errorMessage = error.localizedDescription }
-                                }
-                                Divider()
-                                Button("Delete…", role: .destructive) {
-                                    projectToDelete = project
-                                }
-                            }
-                        }
-                    } label: {
-                        Text("Archived")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-
-            if !facets.isEmpty {
-                Section("Facets", isExpanded: $showFacets) {
-                    ForEach(facets) { facet in
-                        NavigationLink(value: DashboardView.SidebarItem.facet(facet)) {
-                            HStack(spacing: 8) {
-                                if renamingFacet?.id == facet.id {
-                                    TextField("", text: $renameText)
-                                        .textFieldStyle(.plain)
-                                        .focused($renameFieldFocused)
-                                        .onSubmit { commitFacetRename() }
-                                        .onExitCommand { renamingFacet = nil }
-                                } else {
-                                    Text(facet.name)
-                                    Spacer()
-                                    Text(roundingSettings.display(facet.totalDuration).shortFormatted)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                        .monospacedDigit()
-                                }
-                            }
-                        }
-                        .contextMenu {
-                            Button("Rename") {
-                                renamingFacet = facet
-                                renameText = facet.name
-                                renameFieldFocused = true
-                            }
-                            Divider()
-                            Button("Delete…", role: .destructive) {
-                                facetToDelete = facet
-                            }
-                        }
-                    }
-                }
-            }
+            projectsSection
+            archivedSection
+            projectGroupsSection
+            facetsSection
         }
         .listStyle(.sidebar)
         .onChange(of: projects, initial: true) { _, new in
@@ -216,7 +116,203 @@ struct SidebarView: View {
         } message: {
             Text("This facet will be removed from every task that carries it. Time records are not affected.")
         }
+        .confirmationDialog(
+            "Delete \"\(projectGroupToDelete?.name ?? "")\"?",
+            isPresented: Binding(get: { projectGroupToDelete != nil }, set: { if !$0 { projectGroupToDelete = nil } }),
+            titleVisibility: .visible
+        ) {
+            Button("Delete Group", role: .destructive) {
+                if let group = projectGroupToDelete {
+                    if case .projectGroup(let selected) = selection, selected.id == group.id {
+                        selection = .overview
+                    }
+                    do { try repositories.projectGroup.delete(group) } catch { errorMessage = error.localizedDescription }
+                }
+                projectGroupToDelete = nil
+            }
+        } message: {
+            Text("This group will be removed from every project that carries it. Time records are not affected.")
+        }
         .errorAlert($errorMessage)
+    }
+
+    @ViewBuilder
+    private var projectsSection: some View {
+        Section("Projects", isExpanded: $showProjects) {
+            ForEach(viewModel.activeProjects) { project in
+                NavigationLink(value: DashboardView.SidebarItem.project(project)) {
+                    HStack(spacing: 8) {
+                        if renamingProject?.id == project.id {
+                            TextField("", text: $renameText)
+                                .textFieldStyle(.plain)
+                                .focused($renameFieldFocused)
+                                .onSubmit { commitRename() }
+                                .onExitCommand { renamingProject = nil }
+                        } else {
+                            Text(project.name)
+                            Spacer()
+                            let total = roundingSettings.display(project.totalDuration)
+                            Text(total.shortFormatted)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .monospacedDigit()
+                        }
+                    }
+                }
+                .contextMenu {
+                    Button("Rename") {
+                        renamingProject = project
+                        renameText = project.name
+                        renameFieldFocused = true
+                    }
+                    Button("Archive") {
+                        if case .project(let selected) = selection, selected.id == project.id {
+                            selection = .overview
+                        }
+                        do { try repositories.project.archive(project) } catch { errorMessage = error.localizedDescription }
+                    }
+                    Button("Groups…") {
+                        projectForGroupPicker = project
+                    }
+                    Divider()
+                    Button("Delete…", role: .destructive) {
+                        projectToDelete = project
+                    }
+                }
+                .popover(isPresented: groupPickerBinding(for: project)) {
+                    ProjectGroupPicker(project: project)
+                }
+            }
+            .onMove(perform: moveProjects)
+        }
+    }
+
+    @ViewBuilder
+    private var archivedSection: some View {
+        if !viewModel.archivedProjects.isEmpty {
+            Section {
+                DisclosureGroup(isExpanded: $showArchived) {
+                    ForEach(viewModel.archivedProjects) { project in
+                        NavigationLink(value: DashboardView.SidebarItem.project(project)) {
+                            HStack(spacing: 8) {
+                                Text(project.name)
+                                    .foregroundStyle(.secondary)
+                                Spacer()
+                                let total = roundingSettings.display(project.totalDuration)
+                                Text(total.shortFormatted)
+                                    .font(.caption)
+                                    .foregroundStyle(.tertiary)
+                                    .monospacedDigit()
+                            }
+                        }
+                        .contextMenu {
+                            Button("Unarchive") {
+                                do { try repositories.project.unarchive(project) } catch { errorMessage = error.localizedDescription }
+                            }
+                            Button("Groups…") {
+                                projectForGroupPicker = project
+                            }
+                            Divider()
+                            Button("Delete…", role: .destructive) {
+                                projectToDelete = project
+                            }
+                        }
+                        .popover(isPresented: groupPickerBinding(for: project)) {
+                            ProjectGroupPicker(project: project)
+                        }
+                    }
+                } label: {
+                    Text("Archived")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var facetsSection: some View {
+        if !facets.isEmpty {
+            Section("Facets", isExpanded: $showFacets) {
+                ForEach(facets) { facet in
+                    NavigationLink(value: DashboardView.SidebarItem.facet(facet)) {
+                        HStack(spacing: 8) {
+                            if renamingFacet?.id == facet.id {
+                                TextField("", text: $renameText)
+                                    .textFieldStyle(.plain)
+                                    .focused($renameFieldFocused)
+                                    .onSubmit { commitFacetRename() }
+                                    .onExitCommand { renamingFacet = nil }
+                            } else {
+                                Text(facet.name)
+                                Spacer()
+                                Text(roundingSettings.display(facet.totalDuration).shortFormatted)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .monospacedDigit()
+                            }
+                        }
+                    }
+                    .contextMenu {
+                        Button("Rename") {
+                            renamingFacet = facet
+                            renameText = facet.name
+                            renameFieldFocused = true
+                        }
+                        Divider()
+                        Button("Delete…", role: .destructive) {
+                            facetToDelete = facet
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var projectGroupsSection: some View {
+        if !projectGroups.isEmpty {
+            Section("Project Groups", isExpanded: $showProjectGroups) {
+                ForEach(projectGroups) { group in
+                    NavigationLink(value: DashboardView.SidebarItem.projectGroup(group)) {
+                        HStack(spacing: 8) {
+                            if renamingProjectGroup?.id == group.id {
+                                TextField("", text: $renameText)
+                                    .textFieldStyle(.plain)
+                                    .focused($renameFieldFocused)
+                                    .onSubmit { commitProjectGroupRename() }
+                                    .onExitCommand { renamingProjectGroup = nil }
+                            } else {
+                                Text(group.name)
+                                Spacer()
+                                Text(roundingSettings.display(group.totalDuration).shortFormatted)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .monospacedDigit()
+                            }
+                        }
+                    }
+                    .contextMenu {
+                        Button("Rename") {
+                            renamingProjectGroup = group
+                            renameText = group.name
+                            renameFieldFocused = true
+                        }
+                        Divider()
+                        Button("Delete…", role: .destructive) {
+                            projectGroupToDelete = group
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func groupPickerBinding(for project: Project) -> Binding<Bool> {
+        Binding(
+            get: { projectForGroupPicker?.id == project.id },
+            set: { if !$0 { projectForGroupPicker = nil } }
+        )
     }
 
     private func moveProjects(from source: IndexSet, to destination: Int) {
@@ -236,6 +332,14 @@ struct SidebarView: View {
             do { try repositories.facet.rename(facet, to: renameText) } catch { errorMessage = error.localizedDescription }
         }
         renamingFacet = nil
+        renameText = ""
+    }
+
+    private func commitProjectGroupRename() {
+        if let group = renamingProjectGroup {
+            do { try repositories.projectGroup.rename(group, to: renameText) } catch { errorMessage = error.localizedDescription }
+        }
+        renamingProjectGroup = nil
         renameText = ""
     }
 }

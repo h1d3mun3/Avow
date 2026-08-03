@@ -121,6 +121,102 @@ struct DashboardAggregationsTests {
         #expect(breakdown.items[0].fraction == 0)
     }
 
+    // MARK: - ProjectGroupBreakdown
+
+    @Test func projectGroupBreakdown_projectInMultipleGroups_countsDurationForEach() throws {
+        let context = try makeInMemoryContext()
+        let project = Project(name: "P")
+        context.insert(project)
+        let task = Task(name: "T", project: project)
+        context.insert(task)
+        let clientA = ProjectGroup(name: "Client A")
+        let internalWork = ProjectGroup(name: "Internal")
+        [clientA, internalWork].forEach { context.insert($0) }
+        project.projectGroups = [clientA, internalWork]
+
+        let entry = finishedEntry(start: 0, end: 600, task: task, context: context)
+
+        let breakdown = ProjectGroupBreakdown(entries: [entry])
+
+        // Both groups get the full duration: each is an independent question.
+        let durations = Dictionary(uniqueKeysWithValues: breakdown.items.map { ($0.name, $0.duration) })
+        #expect(durations["Client A"] == 600)
+        #expect(durations["Internal"] == 600)
+    }
+
+    @Test func projectGroupBreakdown_sameGroupAcrossProjects_sumsDurations() throws {
+        let context = try makeInMemoryContext()
+        let siteRedesign = Project(name: "Site Redesign")
+        let apiMigration = Project(name: "API Migration")
+        [siteRedesign, apiMigration].forEach { context.insert($0) }
+        let clientA = ProjectGroup(name: "Client A")
+        context.insert(clientA)
+        siteRedesign.projectGroups = [clientA]
+        apiMigration.projectGroups = [clientA]
+        let t1 = Task(name: "T1", project: siteRedesign)
+        let t2 = Task(name: "T2", project: apiMigration)
+        [t1, t2].forEach { context.insert($0) }
+
+        let e1 = finishedEntry(start: 0, end: 600, task: t1, context: context)
+        let e2 = finishedEntry(start: 600, end: 1200, task: t2, context: context)
+
+        let breakdown = ProjectGroupBreakdown(entries: [e1, e2])
+
+        #expect(breakdown.items.count == 1)
+        #expect(breakdown.items[0].name == "Client A")
+        #expect(breakdown.items[0].duration == 1200)
+    }
+
+    @Test func projectGroupBreakdown_ungroupedEntriesOmitted() throws {
+        let context = try makeInMemoryContext()
+        let grouped = Project(name: "Grouped")
+        let ungrouped = Project(name: "Ungrouped")
+        [grouped, ungrouped].forEach { context.insert($0) }
+        let group = ProjectGroup(name: "Client A")
+        context.insert(group)
+        grouped.projectGroups = [group]
+        let taggedTask = Task(name: "Tagged", project: grouped)
+        let untaggedTask = Task(name: "Untagged", project: ungrouped)
+        [taggedTask, untaggedTask].forEach { context.insert($0) }
+
+        let e1 = finishedEntry(start: 0, end: 600, task: taggedTask, context: context)
+        let e2 = finishedEntry(start: 600, end: 1800, task: untaggedTask, context: context)
+
+        let breakdown = ProjectGroupBreakdown(entries: [e1, e2])
+
+        #expect(breakdown.items.count == 1)
+        #expect(breakdown.items[0].name == "Client A")
+        #expect(breakdown.items[0].duration == 600)
+    }
+
+    @Test func projectGroupBreakdown_itemsSortedByDurationDescending() throws {
+        let context = try makeInMemoryContext()
+        let small = ProjectGroup(name: "small")
+        let large = ProjectGroup(name: "large")
+        [small, large].forEach { context.insert($0) }
+        let smallProject = Project(name: "S")
+        let largeProject = Project(name: "L")
+        [smallProject, largeProject].forEach { context.insert($0) }
+        smallProject.projectGroups = [small]
+        largeProject.projectGroups = [large]
+        let smallTask = Task(name: "ST", project: smallProject)
+        let largeTask = Task(name: "LT", project: largeProject)
+        [smallTask, largeTask].forEach { context.insert($0) }
+
+        let smallEntry = finishedEntry(start: 0, end: 600, task: smallTask, context: context)
+        let largeEntry = finishedEntry(start: 0, end: 3600, task: largeTask, context: context)
+
+        let breakdown = ProjectGroupBreakdown(entries: [smallEntry, largeEntry])
+
+        #expect(breakdown.items.map(\.name) == ["large", "small"])
+    }
+
+    @Test func projectGroupBreakdown_emptyEntries_isEmpty() throws {
+        let breakdown = ProjectGroupBreakdown(entries: [])
+
+        #expect(breakdown.items.isEmpty)
+    }
+
     // MARK: - FacetBreakdown
 
     @Test func facetBreakdown_taskWithMultipleFacets_countsDurationForEach() throws {

@@ -29,6 +29,10 @@ struct DataAdminService {
         for facet in try context.fetch(FetchDescriptor<Facet>()) {
             context.delete(facet)
         }
+        // Same reasoning for project groups (the Project<->ProjectGroup relationship nullifies).
+        for group in try context.fetch(FetchDescriptor<ProjectGroup>()) {
+            context.delete(group)
+        }
         if saving {
             try context.save()
         }

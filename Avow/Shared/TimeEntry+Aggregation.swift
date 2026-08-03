@@ -26,6 +26,23 @@ extension Task {
     }
 }
 
+extension ProjectGroup {
+    /// Projects in this group that are not archived.
+    var activeProjects: [Project] {
+        projects.filter { !$0.isArchived }
+    }
+
+    /// All time entries across this group's active projects.
+    var allTimeEntries: [TimeEntry] {
+        activeProjects.flatMap(\.allTimeEntries)
+    }
+
+    /// Total tracked duration across this group's active projects.
+    var totalDuration: TimeInterval {
+        allTimeEntries.totalDuration
+    }
+}
+
 extension Facet {
     /// Tasks carrying this facet whose project exists and is not archived.
     ///

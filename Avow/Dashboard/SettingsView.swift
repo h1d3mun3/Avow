@@ -125,7 +125,7 @@ struct SettingsView: View {
             Button("Cancel", role: .cancel) {}
             Button("Reset", role: .destructive) { resetAllData() }
         } message: {
-            Text("This will permanently delete all projects, tasks, time entries, and facets. This action cannot be undone.")
+            Text("This will permanently delete all projects, tasks, time entries, facets, and project groups. This action cannot be undone.")
         }
         .confirmationDialog(
             "Import data",
@@ -149,7 +149,8 @@ struct SettingsView: View {
         do {
             let projects = try repositories.project.allProjectsSortedByName()
             let facets = try repositories.facet.allFacetsSortedByName()
-            let data = try ExportService().buildJSONData(from: projects, facets: facets)
+            let projectGroups = try repositories.projectGroup.allProjectGroupsSortedByName()
+            let data = try ExportService().buildJSONData(from: projects, facets: facets, projectGroups: projectGroups)
 
             let panel = NSSavePanel()
             panel.allowedContentTypes = [.json]
