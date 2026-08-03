@@ -3,14 +3,17 @@ import Foundation
 /// Per-project time breakdown for a single day's entries.
 struct DayBreakdown {
     let total: TimeInterval
-    let items: [(name: String, duration: TimeInterval, fraction: Double)]
+    let items: [(id: UUID?, name: String, duration: TimeInterval, fraction: Double)]
     init(entries: [TimeEntry]) {
         let total = entries.totalDuration
-        var groups: [String: TimeInterval] = [:]
-        for entry in entries { groups[entry.task?.project?.name ?? "—", default: 0] += entry.duration }
+        var groups: [UUID?: (name: String, duration: TimeInterval)] = [:]
+        for entry in entries {
+            let project = entry.task?.project
+            groups[project?.id, default: (name: project?.name ?? "—", duration: 0)].duration += entry.duration
+        }
         self.total = total
         self.items = groups
-            .map { (name: $0.key, duration: $0.value, fraction: total > 0 ? $0.value / total : 0) }
+            .map { (id: $0.key, name: $0.value.name, duration: $0.value.duration, fraction: total > 0 ? $0.value.duration / total : 0) }
             .sorted { $0.duration > $1.duration }
     }
 }
@@ -22,7 +25,7 @@ struct DayBreakdown {
 /// answers an independent "how much time on X?" question. Entries whose task has no
 /// facet are omitted (unfaceted time is intentionally not surfaced).
 struct FacetBreakdown {
-    let items: [(name: String, duration: TimeInterval)]
+    let items: [(id: UUID, name: String, duration: TimeInterval)]
     init(entries: [TimeEntry]) {
         var totals: [UUID: (name: String, duration: TimeInterval)] = [:]
         for entry in entries {
@@ -31,8 +34,8 @@ struct FacetBreakdown {
                 totals[facet.id, default: (name: facet.name, duration: 0)].duration += entry.duration
             }
         }
-        self.items = totals.values
-            .map { (name: $0.name, duration: $0.duration) }
+        self.items = totals
+            .map { (id: $0.key, name: $0.value.name, duration: $0.value.duration) }
             .sorted { $0.duration > $1.duration }
     }
 }
