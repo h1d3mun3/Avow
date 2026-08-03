@@ -36,8 +36,12 @@ final class MenuBarStatusController: NSObject, NSWindowDelegate {
         configureButton()
         refreshButton()
 
-        // Polls once a second rather than observing AppState directly — simpler than bridging
-        // @Observable into AppKit, and the cost of refreshing an idle button is negligible.
+        // Refresh immediately on start/stop/switch so those feel instant, instead of waiting for
+        // the next second-boundary tick below.
+        appState.onActiveEntryChange = { [weak self] in self?.refreshButton() }
+
+        // Still poll once a second for the elapsed-time digits themselves, since those change
+        // continuously while tracking and AppState has no per-second change notification.
         let timer = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
             // `Task` here would otherwise resolve to the SwiftData `Task` model, not _Concurrency.Task.
             _Concurrency.Task { @MainActor in
