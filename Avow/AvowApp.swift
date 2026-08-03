@@ -156,6 +156,9 @@ struct MenuBarLabel: View {
             if let entry = appState.activeEntry {
                 Text(appState.liveDuration(of: entry).timerFormatted)
                     .fontDesign(.monospaced)
+                    // Reserve a stable width so the status item doesn't reflow every tick
+                    // (unreserved width causes MenuBarExtra to flicker in/out of the menu bar overflow).
+                    .frame(width: 64, alignment: .trailing)
             }
             Image(systemName: appState.isTracking ? "clock.fill" : "clock")
         }
