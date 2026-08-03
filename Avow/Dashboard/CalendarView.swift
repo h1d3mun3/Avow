@@ -3,12 +3,17 @@ import SwiftData
 
 struct CalendarView: View {
     @State private var selectedDate: Date? = Calendar.current.startOfDay(for: .now)
+    @State private var selectedProjectIDs: Set<UUID>?
+
+    private var projectFilter: ProjectFilter {
+        ProjectFilter(selectedIDs: selectedProjectIDs)
+    }
 
     var body: some View {
         HSplitView {
             calendarPanel
             if let date = selectedDate {
-                DailyTimelineView(date: date)
+                DailyTimelineView(date: date, filter: projectFilter)
                     .frame(minWidth: 320)
             }
         }
@@ -20,12 +25,15 @@ struct CalendarView: View {
             VStack(alignment: .leading, spacing: 20) {
                 CalendarSidebarSection(
                     selectedDate: selectedDate,
-                    onSelectDate: { selectedDate = $0 }
+                    onSelectDate: { selectedDate = $0 },
+                    filter: projectFilter
                 )
 
+                CalendarProjectFilterSection(selectedProjectIDs: $selectedProjectIDs)
+
                 if let date = selectedDate {
-                    DayProjectBreakdown(date: date)
-                    DayFacetBreakdown(date: date)
+                    DayProjectBreakdown(date: date, filter: projectFilter)
+                    DayFacetBreakdown(date: date, filter: projectFilter)
                 }
             }
             .padding(20)
@@ -38,12 +46,14 @@ struct CalendarView: View {
 
 private struct DayProjectBreakdown: View {
     let date: Date
+    let filter: ProjectFilter
 
     @Query private var entries: [TimeEntry]
     @Environment(TimeRoundingSettings.self) private var roundingSettings
 
-    init(date: Date) {
+    init(date: Date, filter: ProjectFilter) {
         self.date = date
+        self.filter = filter
         let (start, end) = DateWindows().dayBounds(for: date)
         _entries = Query(filter: #Predicate<TimeEntry> { entry in
             entry.startDate >= start && entry.startDate < end
@@ -51,8 +61,9 @@ private struct DayProjectBreakdown: View {
     }
 
     var body: some View {
-        if !entries.isEmpty {
-            let breakdown = DayBreakdown(entries: entries)
+        let filteredEntries = entries.filtered(by: filter)
+        if !filteredEntries.isEmpty {
+            let breakdown = DayBreakdown(entries: filteredEntries)
             // Each entry belongs to exactly one project, so the per-project rows
             // reconcile to the day total — round them cumulatively.
             let displayed = roundingSettings.display(breakdown.items.map(\.duration))
@@ -95,12 +106,14 @@ private struct DayProjectBreakdown: View {
 
 private struct DayFacetBreakdown: View {
     let date: Date
+    let filter: ProjectFilter
 
     @Query private var entries: [TimeEntry]
     @Environment(TimeRoundingSettings.self) private var roundingSettings
 
-    init(date: Date) {
+    init(date: Date, filter: ProjectFilter) {
         self.date = date
+        self.filter = filter
         let (start, end) = DateWindows().dayBounds(for: date)
         _entries = Query(filter: #Predicate<TimeEntry> { entry in
             entry.startDate >= start && entry.startDate < end
@@ -108,7 +121,7 @@ private struct DayFacetBreakdown: View {
     }
 
     var body: some View {
-        let breakdown = FacetBreakdown(entries: entries)
+        let breakdown = FacetBreakdown(entries: entries.filtered(by: filter))
         // Absolute time only, sorted descending; unfaceted time and the whole
         // section are omitted when there is nothing to show.
         if !breakdown.items.isEmpty {
