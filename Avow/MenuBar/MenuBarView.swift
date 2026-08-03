@@ -3,7 +3,11 @@ import SwiftData
 
 struct MenuBarView: View {
     @Environment(AppState.self) private var appState
-    @Environment(\.openWindow) private var openWindow
+
+    /// Opens the Dashboard window. Passed in explicitly rather than using `@Environment(\.openWindow)`
+    /// because this view is hosted in a manually-created NSPanel (see MenuBarStatusController), not a
+    /// SwiftUI Scene, so the openWindow environment action isn't available here.
+    let openDashboard: () -> Void
 
     @Query(sort: \Task.name)
     private var allTasks: [Task]
@@ -73,7 +77,7 @@ struct MenuBarView: View {
                 if let window = NSApp.windows.first(where: { $0.title == WindowID.dashboardTitle }) {
                     window.makeKeyAndOrderFront(nil)
                 } else {
-                    openWindow(id: WindowID.dashboard)
+                    openDashboard()
                 }
                 NSApp.activate()
             } label: {
