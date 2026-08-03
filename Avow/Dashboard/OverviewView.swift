@@ -30,24 +30,20 @@ struct OverviewView: View {
         } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    HStack(alignment: .top, spacing: 12) {
+                    HStack(spacing: 12) {
                         OverviewSummaryCard(
                             label: "Total tracked",
-                            value: roundingSettings.display(viewModel.totalDuration).shortFormatted,
-                            sub: "\(viewModel.activeProjects.count) projects"
+                            value: roundingSettings.display(viewModel.totalDuration).shortFormatted
                         )
                         OverviewSummaryCard(
                             label: "This week",
-                            value: roundingSettings.display(viewModel.thisWeekDuration).shortFormatted,
-                            sub: ""
+                            value: roundingSettings.display(viewModel.thisWeekDuration).shortFormatted
                         )
                         OverviewSummaryCard(
                             label: "Today",
-                            value: roundingSettings.display(viewModel.todayDuration).shortFormatted,
-                            sub: ""
+                            value: roundingSettings.display(viewModel.todayDuration).shortFormatted
                         )
                     }
-                    .fixedSize(horizontal: false, vertical: true)
 
                     QuickStartSection(viewModel: viewModel)
 
@@ -63,7 +59,6 @@ struct OverviewView: View {
 private struct OverviewSummaryCard: View {
     let label: String
     let value: String
-    let sub: String
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -74,16 +69,8 @@ private struct OverviewSummaryCard: View {
                 .font(.title2)
                 .fontWeight(.medium)
                 .monospacedDigit()
-            if !sub.isEmpty {
-                Text(sub)
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-            }
         }
-        // Cards sit side by side and not all of them have a `sub` line, so let
-        // each one stretch to the tallest of the row instead of shrinking to
-        // its own content.
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
         .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 8))
     }
