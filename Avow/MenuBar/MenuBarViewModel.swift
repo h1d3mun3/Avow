@@ -7,7 +7,9 @@ final class MenuBarViewModel {
     var filterText: String = ""
     func update(tasks: [Task]) { self.tasks = tasks }
 
-    private var activeTasks: [Task] { tasks.filter { $0.status == .active } }
+    private var activeTasks: [Task] {
+        tasks.filter { $0.status == .active && $0.project?.isArchived != true }
+    }
     var filteredTasks: [Task] {
         filterText.isEmpty ? activeTasks
             : activeTasks.filter {
