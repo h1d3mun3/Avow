@@ -2,7 +2,8 @@ import SwiftUI
 import SwiftData
 
 /// Lets the user narrow the Calendar tab down to a single project and/or
-/// facet at a time.
+/// facet at a time, tab-style: click an item to highlight it and filter down
+/// to it, click "All" to clear the filter.
 struct CalendarFilterSection: View {
     @Binding var projectID: UUID?
     @Binding var facetID: UUID?
@@ -18,40 +19,72 @@ struct CalendarFilterSection: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
             if !projects.isEmpty {
-                filterRow(title: "Project") {
-                    Picker("Project", selection: $projectID) {
-                        Text("All").tag(nil as UUID?)
-                        ForEach(projects) { project in
-                            Text(project.name).tag(project.id as UUID?)
-                        }
-                    }
-                }
+                filterList(
+                    title: "Projects",
+                    allLabel: "All Projects",
+                    items: projects.map { ($0.id, $0.name) },
+                    selection: $projectID
+                )
             }
 
             if !facets.isEmpty {
-                filterRow(title: "Facet") {
-                    Picker("Facet", selection: $facetID) {
-                        Text("All").tag(nil as UUID?)
-                        ForEach(facets) { facet in
-                            Text(facet.name).tag(facet.id as UUID?)
-                        }
-                    }
-                }
+                filterList(
+                    title: "Facets",
+                    allLabel: "All Facets",
+                    items: facets.map { ($0.id, $0.name) },
+                    selection: $facetID
+                )
             }
         }
     }
 
-    private func filterRow(title: String, @ViewBuilder content: () -> some View) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+    private func filterList(
+        title: String,
+        allLabel: String,
+        items: [(id: UUID, name: String)],
+        selection: Binding<UUID?>
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
             Text(title)
                 .font(.caption)
                 .fontWeight(.medium)
                 .foregroundStyle(.secondary)
-            content()
-                .labelsHidden()
-                .pickerStyle(.menu)
+                .padding(.bottom, 2)
+
+            CalendarFilterRow(label: allLabel, isSelected: selection.wrappedValue == nil) {
+                selection.wrappedValue = nil
+            }
+
+            ForEach(items, id: \.id) { item in
+                CalendarFilterRow(label: item.name, isSelected: selection.wrappedValue == item.id) {
+                    selection.wrappedValue = item.id
+                }
+            }
         }
+    }
+}
+
+private struct CalendarFilterRow: View {
+    let label: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(label)
+                .font(.caption)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 4)
+                .padding(.horizontal, 6)
+                .background(
+                    RoundedRectangle(cornerRadius: 5)
+                        .fill(isSelected ? Color.accentColor : Color.clear)
+                )
+                .foregroundStyle(isSelected ? .white : .primary)
+        }
+        .buttonStyle(.plain)
     }
 }
