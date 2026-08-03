@@ -66,7 +66,7 @@ final class MenuBarStatusController: NSObject, NSWindowDelegate {
         button.image = image
 
         if let entry = appState.activeEntry {
-            button.imagePosition = .imageTrailing
+            button.imagePosition = .imageLeading
             button.title = entry.duration.timerFormatted
         } else {
             button.imagePosition = .imageOnly
