@@ -25,6 +25,7 @@ struct CalendarView: View {
 
                 if let date = selectedDate {
                     DayProjectBreakdown(date: date)
+                    DayProjectGroupBreakdown(date: date)
                     DayFacetBreakdown(date: date)
                 }
             }
@@ -84,6 +85,52 @@ private struct DayProjectBreakdown: View {
                             .monospacedDigit()
                             .foregroundStyle(.secondary)
                             .frame(width: 36, alignment: .trailing)
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Project group breakdown for a single day
+
+private struct DayProjectGroupBreakdown: View {
+    let date: Date
+
+    @Query private var entries: [TimeEntry]
+    @Environment(TimeRoundingSettings.self) private var roundingSettings
+
+    init(date: Date) {
+        self.date = date
+        let (start, end) = DateWindows().dayBounds(for: date)
+        _entries = Query(filter: #Predicate<TimeEntry> { entry in
+            entry.startDate >= start && entry.startDate < end
+        })
+    }
+
+    var body: some View {
+        let breakdown = ProjectGroupBreakdown(entries: entries)
+        // Absolute time only, sorted descending; ungrouped time and the whole
+        // section are omitted when there is nothing to show.
+        if !breakdown.items.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("By group")
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundStyle(.secondary)
+
+                // Groups overlap (a project may belong to several), so these rows don't sum
+                // to any single total — round each independently to the nearest minute.
+                ForEach(breakdown.items, id: \.name) { item in
+                    HStack(spacing: 6) {
+                        Text(item.name)
+                            .font(.caption)
+                            .lineLimit(1)
+                        Spacer()
+                        Text(roundingSettings.display(item.duration).shortFormatted)
+                            .font(.caption)
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
                     }
                 }
             }

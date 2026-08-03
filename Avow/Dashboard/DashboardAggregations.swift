@@ -15,6 +15,28 @@ struct DayBreakdown {
     }
 }
 
+/// Per-project-group time totals for a day's entries, sorted by duration descending.
+///
+/// A project may belong to several groups, so an entry's duration is counted toward each of
+/// its project's groups — totals may therefore exceed the day total, since each group
+/// answers an independent "how much time on X?" question. Entries whose project carries no
+/// group are omitted (ungrouped time is intentionally not surfaced).
+struct ProjectGroupBreakdown {
+    let items: [(name: String, duration: TimeInterval)]
+    init(entries: [TimeEntry]) {
+        var totals: [UUID: (name: String, duration: TimeInterval)] = [:]
+        for entry in entries {
+            guard let groups = entry.task?.project?.projectGroups, !groups.isEmpty else { continue }
+            for group in groups {
+                totals[group.id, default: (name: group.name, duration: 0)].duration += entry.duration
+            }
+        }
+        self.items = totals.values
+            .map { (name: $0.name, duration: $0.duration) }
+            .sorted { $0.duration > $1.duration }
+    }
+}
+
 /// Per-facet time totals for a day's entries, sorted by duration descending.
 ///
 /// A task may carry several facets, so an entry's duration is counted toward each of

@@ -51,8 +51,8 @@ struct SidebarView: View {
 
             projectsSection
             archivedSection
-            facetsSection
             projectGroupsSection
+            facetsSection
         }
         .listStyle(.sidebar)
         .onChange(of: projects, initial: true) { _, new in
