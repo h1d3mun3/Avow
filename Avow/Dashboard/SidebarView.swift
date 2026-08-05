@@ -149,7 +149,15 @@ struct SidebarView: View {
                                 .onSubmit { commitRename() }
                                 .onExitCommand { renamingProject = nil }
                         } else {
-                            Text(project.name)
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(project.name)
+                                if let groups = groupNames(for: project) {
+                                    Text(groups)
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(1)
+                                }
+                            }
                             Spacer()
                             let total = roundingSettings.display(project.totalDuration)
                             Text(total.shortFormatted)
@@ -195,8 +203,16 @@ struct SidebarView: View {
                     ForEach(viewModel.archivedProjects) { project in
                         NavigationLink(value: DashboardView.SidebarItem.project(project)) {
                             HStack(spacing: 8) {
-                                Text(project.name)
-                                    .foregroundStyle(.secondary)
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(project.name)
+                                        .foregroundStyle(.secondary)
+                                    if let groups = groupNames(for: project) {
+                                        Text(groups)
+                                            .font(.caption2)
+                                            .foregroundStyle(.tertiary)
+                                            .lineLimit(1)
+                                    }
+                                }
                                 Spacer()
                                 let total = roundingSettings.display(project.totalDuration)
                                 Text(total.shortFormatted)
@@ -306,6 +322,14 @@ struct SidebarView: View {
                 }
             }
         }
+    }
+
+    /// The project's group names as a single subtitle line, or nil when it carries none.
+    /// Mirrors how `TaskDetailRow` renders a task's facets, keeping the two
+    /// cross-cutting labels (Facet on Tasks, ProjectGroup on Projects) presented alike.
+    private func groupNames(for project: Project) -> String? {
+        guard !project.projectGroups.isEmpty else { return nil }
+        return project.projectGroups.map(\.name).sorted().joined(separator: " · ")
     }
 
     private func groupPickerBinding(for project: Project) -> Binding<Bool> {
