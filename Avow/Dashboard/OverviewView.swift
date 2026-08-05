@@ -30,6 +30,9 @@ struct OverviewView: View {
         } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
+                    // fixedSize pins the row to the tallest card's ideal height and
+                    // hands that height back to every card, so a label that wraps
+                    // (e.g. "Total tracked" when narrow) grows all three boxes together.
                     HStack(spacing: 12) {
                         OverviewSummaryCard(
                             label: "Total tracked",
@@ -44,6 +47,7 @@ struct OverviewView: View {
                             value: roundingSettings.display(viewModel.todayDuration).shortFormatted
                         )
                     }
+                    .fixedSize(horizontal: false, vertical: true)
 
                     QuickStartSection(viewModel: viewModel)
 
@@ -70,7 +74,7 @@ private struct OverviewSummaryCard: View {
                 .fontWeight(.medium)
                 .monospacedDigit()
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .padding(12)
         .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 8))
     }

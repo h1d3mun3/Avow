@@ -27,11 +27,15 @@ struct TaskListPanel: View {
         let displayDurations = taskDisplayDurations
         return VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 20) {
+                // fixedSize pins the row to the tallest card's ideal height and
+                // hands that height back to every card, so a label that wraps
+                // (e.g. "Total tracked" when narrow) grows all three boxes together.
                 HStack(spacing: 12) {
                     ProjectSummaryCard(label: "Total tracked", value: roundingSettings.display(viewModel.totalDuration).shortFormatted)
                     ProjectSummaryCard(label: "This week", value: roundingSettings.display(viewModel.thisWeekDuration).shortFormatted)
                     ProjectSummaryCard(label: "Active tasks", value: "\(viewModel.activeTasks.count)")
                 }
+                .fixedSize(horizontal: false, vertical: true)
             }
             .padding(20)
 
@@ -185,7 +189,7 @@ private struct ProjectSummaryCard: View {
                 .fontWeight(.medium)
                 .monospacedDigit()
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .padding(12)
         .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 8))
         .accessibilityElement(children: .combine)
