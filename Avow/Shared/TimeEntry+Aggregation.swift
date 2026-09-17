@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 extension Sequence where Element == TimeEntry {
     /// Total tracked duration across the entries.
     var totalDuration: TimeInterval {
@@ -7,6 +8,7 @@ extension Sequence where Element == TimeEntry {
     }
 }
 
+@MainActor
 extension Project {
     /// All time entries across this project's tasks.
     var allTimeEntries: [TimeEntry] {
@@ -19,6 +21,7 @@ extension Project {
     }
 }
 
+@MainActor
 extension Task {
     /// Total tracked duration across this task's time entries.
     var totalDuration: TimeInterval {
@@ -26,6 +29,7 @@ extension Task {
     }
 }
 
+@MainActor
 extension ProjectGroup {
     /// Projects in this group that are not archived.
     var activeProjects: [Project] {
@@ -43,6 +47,7 @@ extension ProjectGroup {
     }
 }
 
+@MainActor
 extension Facet {
     /// Tasks carrying this facet whose project exists and is not archived.
     ///

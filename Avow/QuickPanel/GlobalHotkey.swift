@@ -54,7 +54,9 @@ final class GlobalHotkey {
         guard registerStatus == noErr else { return nil }
     }
 
-    deinit {
+    // Isolated so the teardown runs on the main actor alongside the registration: both refs are
+    // opaque Carbon pointers, which a nonisolated deinit may not touch under Swift 6.
+    isolated deinit {
         if let hotKeyRef { UnregisterEventHotKey(hotKeyRef) }
         if let handlerRef { RemoveEventHandler(handlerRef) }
     }

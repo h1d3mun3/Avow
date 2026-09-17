@@ -12,7 +12,7 @@ func makeInMemoryContext() throws -> ModelContext {
 
 /// A controllable clock: fire the scheduled action manually via advance(), and a settable now().
 final class ManualClock: AppClock {
-    private(set) var scheduledAction: (() -> Void)?
+    private(set) var scheduledAction: (@MainActor () -> Void)?
     var nowDate: Date
 
     init(now: Date = .now) {
@@ -21,7 +21,7 @@ final class ManualClock: AppClock {
 
     func now() -> Date { nowDate }
 
-    func scheduleRepeating(interval: TimeInterval, action: @escaping () -> Void) -> ClockToken {
+    func scheduleRepeating(interval: TimeInterval, action: @escaping @MainActor () -> Void) -> ClockToken {
         scheduledAction = action
         return ClockToken { [weak self] in self?.scheduledAction = nil }
     }
