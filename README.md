@@ -17,8 +17,8 @@ Avow is a macOS time tracker built around that single moment of intention. No ma
 
 ## Requirements
 
-- macOS 14 Sonoma or later
-- Xcode 16 or later
+- macOS 26 Tahoe or later
+- Xcode 26 or later
 
 ## Getting Started
 
