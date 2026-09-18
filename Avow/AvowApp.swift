@@ -114,7 +114,7 @@ private struct AppLaunchSetup: View {
 
     var body: some View {
         Color.clear
-            .onAppear {
+            .onAppear { [appDelegate] in
                 appDelegate.openWindow = { id in openWindow(id: id) }
                 openWindow(id: WindowID.dashboard)
 

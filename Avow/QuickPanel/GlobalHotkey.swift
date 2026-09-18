@@ -4,8 +4,8 @@ import Carbon.HIToolbox
 /// A single system-wide hotkey registered through Carbon's `RegisterEventHotKey`.
 ///
 /// This API works inside the App Sandbox with no extra entitlement (unlike a global
-/// `CGEventTap`, which needs Accessibility access). The hotkey stays registered for the
-/// lifetime of this object.
+/// `CGEventTap`, which needs Accessibility access). The hotkey stays registered until
+/// `invalidate()` is called, or until this object is deallocated.
 final class GlobalHotkey {
     private var hotKeyRef: EventHotKeyRef?
     private var handlerRef: EventHandlerRef?
@@ -54,8 +54,27 @@ final class GlobalHotkey {
         guard registerStatus == noErr else { return nil }
     }
 
-    deinit {
+    /// Releases the Carbon registration. Idempotent: calling it more than once does nothing.
+    ///
+    /// One-way, as with `Timer.invalidate()`: registration happens in `init?` and there is no way
+    /// back from here. To rebind the hotkey, create a new instance.
+    ///
+    /// Every instance registers the same `EventHotKeyID`, so a replacement created before the
+    /// previous one is torn down hits `eventHotKeyExistsErr` and its `init?` returns nil. Callers
+    /// that replace a hotkey should therefore call this explicitly rather than relying on when the
+    /// last reference happens to be dropped.
+    func invalidate() {
         if let hotKeyRef { UnregisterEventHotKey(hotKeyRef) }
         if let handlerRef { RemoveEventHandler(handlerRef) }
+        hotKeyRef = nil
+        handlerRef = nil
+    }
+
+    // A safety net for callers that just drop the reference — the ordering-sensitive path calls
+    // invalidate() directly. Isolated so the teardown runs on the main actor alongside the
+    // registration: both refs are opaque Carbon pointers, which a nonisolated deinit may not
+    // touch under Swift 6.
+    isolated deinit {
+        invalidate()
     }
 }
