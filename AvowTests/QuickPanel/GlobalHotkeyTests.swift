@@ -23,19 +23,19 @@ struct GlobalHotkeyTests {
     @Test func registersSuccessfully() {
         let hotkey = Self.makeHotkey()
         #expect(hotkey != nil)
-        hotkey?.unregister()
+        hotkey?.invalidate()
     }
 
-    @Test func unregisterFreesTheIDForAReplacement() {
+    @Test func invalidateFreesTheIDForAReplacement() {
         let first = Self.makeHotkey()
         #expect(first != nil)
 
-        first?.unregister()
+        first?.invalidate()
 
-        // Fails with nil if unregister() did not actually release the registration.
+        // Fails with nil if invalidate() did not actually release the registration.
         let second = Self.makeHotkey()
         #expect(second != nil)
-        second?.unregister()
+        second?.invalidate()
     }
 
     @Test func registeringOverALiveHotkeyFails() {
@@ -46,22 +46,22 @@ struct GlobalHotkeyTests {
         let second = Self.makeHotkey()
         #expect(second == nil)
 
-        first?.unregister()
+        first?.invalidate()
     }
 
-    @Test func unregisterIsIdempotent() {
+    @Test func invalidateIsIdempotent() {
         let hotkey = Self.makeHotkey()
         #expect(hotkey != nil)
 
-        hotkey?.unregister()
-        hotkey?.unregister()
+        hotkey?.invalidate()
+        hotkey?.invalidate()
 
         let next = Self.makeHotkey()
         #expect(next != nil)
-        next?.unregister()
+        next?.invalidate()
     }
 
-    @Test func droppingTheLastReferenceUnregisters() {
+    @Test func droppingTheLastReferenceInvalidates() {
         do {
             let hotkey = Self.makeHotkey()
             #expect(hotkey != nil)
@@ -70,6 +70,6 @@ struct GlobalHotkeyTests {
         // is the actor the deinit is isolated to. If it were deferred, the next init? would fail.
         let next = Self.makeHotkey()
         #expect(next != nil)
-        next?.unregister()
+        next?.invalidate()
     }
 }
