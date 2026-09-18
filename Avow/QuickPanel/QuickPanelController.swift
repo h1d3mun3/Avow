@@ -33,10 +33,10 @@ final class QuickPanelController: NSObject, NSWindowDelegate {
     }
 
     private func registerHotkey(_ preference: HotkeyPreference) {
-        // Release the old hotkey FIRST so its deinit unregisters the shared EventHotKeyID before
-        // we register the new one — otherwise the second registration hits eventHotKeyExistsErr
-        // and silently fails, disabling the hotkey after a change.
-        hotkey = nil
+        // Unregister the old hotkey FIRST: every instance registers the same EventHotKeyID, so
+        // registering the replacement before the previous one is torn down hits
+        // eventHotKeyExistsErr and silently fails, disabling the hotkey after a change.
+        hotkey?.unregister()
         hotkey = GlobalHotkey(keyCode: preference.keyCode, modifiers: preference.modifiers) { [weak self] in
             self?.toggle()
         }
