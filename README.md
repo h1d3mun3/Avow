@@ -1,33 +1,82 @@
-# Avow
+<p align="left">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-e58a12.svg" alt="License: MIT"></a>
+</p>
+
+<p align="center">
+  <img src="resources/icon.png" alt="Avow" width="200">
+</p>
+
+<p align="center">
+  <b>A menu bar time tracker for macOS</b>: declare what you are doing now, and look back later at
+  where the time went.
+</p>
 
 > **avow** — to declare openly and publicly.
 
-Picking a task from the menu bar is a declaration: *"This is what I'm doing right now."*
+Picking a task in Avow is a declaration: *"This is what I'm doing right now."* The clock starts the
+moment you choose, the menu bar keeps the elapsed time in view, and every entry is kept so you can
+later see how many hours went into which kind of work.
 
-Avow is a macOS time tracker built around that single moment of intention. No manual timers, no friction — just choose a task and the clock starts.
+> **Status: 1.0.** Avow is in daily use. Download the latest DMG from
+> [Releases](https://github.com/h1d3mun3/Avow/releases), or build it from source.
 
-## Features
+## Why Avow
 
-- **Menu bar first** — start and stop tracking from anywhere without opening the full app; the current task and elapsed time are shown in the menu bar
-- **Projects & tasks** — organize work into projects with task lists; drag to reorder projects in the sidebar
-- **Dashboard** — overview of total, weekly, and daily tracked time with per-project breakdown and a Quick Start section to begin tracking without leaving the main window
-- **Calendar** — browse tracked time by date; select any day to see a timeline of entries grouped by task with per-project breakdown
-- **Time entry editing** — edit start/end times or delete individual records from both the project detail view and the calendar timeline
-- **Archive** — archive completed projects to keep the sidebar tidy without losing data
+- **Starting is a declaration, not a timer.** Choose a task from the menu bar or from the quick
+  panel (⌥⇧Space by default, from any app) and tracking starts. Choosing another task switches to
+  it; there is nothing to set up or remember to start.
+- **Built for looking back.** The Overview shows total, weekly, and daily time with a per-project
+  breakdown, and the Calendar shows any day as a timeline of entries grouped by task. Facets label
+  kinds of work across projects, and project groups bundle projects for combined reporting.
+- **Records stay exact.** Start and end times are stored at full precision. Rounding to whole
+  minutes is a display setting only, so turning it on or off never changes the data. Any entry can
+  be edited or deleted afterwards.
+- **Your data stays on your Mac, in files you can read.** Everything is stored locally, with no
+  account and no sync. A JSON backup round-trips every project, task, entry, facet, and group, and
+  restores by merging or replacing in a single transaction; a CSV export of all entries is there for
+  spreadsheets.
+- **Decisions are written down.** Avow does not color-code projects or facets, on purpose; the
+  reasoning, and what would make it worth revisiting, is recorded in
+  [`docs/decisions/`](docs/decisions/0001-no-color-coding.md).
 
-## Requirements
+## Using Avow
 
-- macOS 26 Tahoe or later
+- **Menu bar.** The status item shows the arc alone while idle, and the arc with the "now" point
+  and the elapsed time while tracking. Click it to pick a task, stop tracking, or open the
+  Dashboard.
+- **Quick panel.** The global shortcut opens a floating panel to search for a task and start it
+  without leaving the app you are in. Change the shortcut in **Settings > Shortcuts**.
+- **Dashboard.** Create projects and their tasks, reorder projects by dragging them in the sidebar,
+  and archive finished ones to keep the sidebar tidy without losing their time.
+- **Settings.** Round displayed durations to minutes, export and import JSON backups, export CSV
+  reports, and reset all data.
+
+## Building
+
+Requirements:
+
+- macOS 26.0 or later
 - Xcode 26 or later
 
-## Getting Started
+```sh
+git clone https://github.com/h1d3mun3/Avow.git && cd Avow
 
-1. Clone the repository
-2. Open `Avow.xcodeproj` in Xcode
-3. Build and run (`⌘R`)
+# Build the app
+xcodebuild build -scheme Avow -destination 'platform=macOS'
 
-The app appears in the menu bar and Dock. Open the Dashboard from the menu bar popover to create your first project and tasks, then pick a task to start the clock.
+# Run the tests
+xcodebuild test -scheme Avow -destination 'platform=macOS'
+```
+
+To build without a signing certificate, add `CODE_SIGNING_ALLOWED=NO` to the `xcodebuild` command.
+Opening `Avow.xcodeproj` in Xcode and running it (⌘R) works too.
+
+Two scripts support the app:
+
+- `scripts/gen_avow_icon.py` regenerates the app icon (`Avow/Resources/Avow.icon`) and the menu bar
+  images from the design values at the top of the file.
+- `scripts/package-dmg.sh` packages a signed, notarized `Avow.app` into a distributable DMG.
 
 ## License
 
-MIT
+MIT. See [LICENSE](LICENSE).
