@@ -44,7 +44,7 @@ APPEARANCES = {
         "now": "#E58A12",         # amber
     },
     "dark": {
-        "background": "#262A31",  # graphite, shared with tiro
+        "background": "#262A31",  # graphite
         "glyph": "#F4F4F6",
         "now": "#FFB340",         # amber, lifted for dark backgrounds
     },
