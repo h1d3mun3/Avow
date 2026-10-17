@@ -17,9 +17,6 @@ Picking a task in Avow is a declaration: *"This is what I'm doing right now."* T
 moment you choose, the menu bar keeps the elapsed time in view, and every entry is kept so you can
 later see how many hours went into which kind of work.
 
-> **Status: 1.0.** Avow is in daily use. Download the latest DMG from
-> [Releases](https://github.com/h1d3mun3/Avow/releases), or build it from source.
-
 ## Why Avow
 
 - **Starting is a declaration, not a timer.** Choose a task from the menu bar or from the quick
