@@ -12,7 +12,7 @@ struct NowPlayingView: View {
                 Text("Tracking")
                     .font(.caption2)
                     .fontWeight(.medium)
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(Color.now)
 
                 Text(entry.task?.name ?? "Unknown task")
                     .font(.subheadline)
@@ -31,7 +31,7 @@ struct NowPlayingView: View {
             Text(appState.liveDuration(of: entry).timerFormatted)
                 .font(.system(.body, design: .monospaced))
                 .fontWeight(.medium)
-                .foregroundStyle(Color.accentColor)
+                .foregroundStyle(Color.now)
                 .accessibilityLabel("Elapsed time: \(entry.duration.timerFormatted)")
 
             Button {
@@ -50,6 +50,6 @@ struct NowPlayingView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background(Color.accentColor.opacity(0.06))
+        .background(Color.now.opacity(0.06))
     }
 }

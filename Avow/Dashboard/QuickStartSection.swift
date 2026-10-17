@@ -115,7 +115,7 @@ private struct QuickStartRow: View {
             .padding(.vertical, 8)
             .background(
                 isActive
-                    ? AnyShapeStyle(Color.accentColor.opacity(0.1))
+                    ? AnyShapeStyle(Color.now.opacity(0.1))
                     : AnyShapeStyle(.quaternary.opacity(0.4)),
                 in: RoundedRectangle(cornerRadius: 8)
             )

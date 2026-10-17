@@ -17,13 +17,16 @@ Output:
     <app source directory>/Assets.xcassets/
         MenuBarIdle.imageset/      template image: the arc, nothing recording
         MenuBarTracking.imageset/  template image: the arc and the "now" point
+        Now.colorset/              the app's "now" color (Color.now), for UI that
+                                   marks the task being recorded
 
 Design: recorded time is an arc that grows clockwise from twelve o'clock,
 split into segments the way a look back splits it into kinds of work. The
 arc stays neutral and its segments differ only in strength, so the icon
 still reads when the system strips hue in the tinted and clear appearances.
 The only colored element is the point in the open gap: the task being
-recorded now.
+recorded now. The app reuses that amber as Color.now for the same meaning
+and nothing else; selection and other controls keep the system accent.
 
 Note: Apple has not published a specification for icon.json, so the
 structure written here, including the dark-appearance specializations, is
@@ -42,11 +45,15 @@ APPEARANCES = {
         "background": "#F2F2F5",  # paper
         "glyph": "#262A31",       # graphite
         "now": "#E58A12",         # amber
+        # Darker amber for app UI: "Tracking" labels sit on light backgrounds
+        # and need 4.5:1 contrast, which #E58A12 (about 2.6:1) does not reach.
+        "now_ui": "#A65F00",
     },
     "dark": {
         "background": "#262A31",  # graphite
         "glyph": "#F4F4F6",
         "now": "#FFB340",         # amber, lifted for dark backgrounds
+        "now_ui": "#FFB340",
     },
 }
 
@@ -203,6 +210,31 @@ def write_menu_bar_image(catalog: Path, name: str, tracking: bool) -> None:
     (imageset / "Contents.json").write_text(json.dumps(contents, indent=2) + "\n", encoding="utf-8")
 
 
+def colorset_component(hex_color: str) -> dict:
+    r, g, b = hex_to_rgb(hex_color)
+    return {
+        "color-space": "srgb",
+        "components": {"alpha": "1.000", "red": f"{r:.3f}", "green": f"{g:.3f}", "blue": f"{b:.3f}"},
+    }
+
+
+def write_now_color(catalog: Path) -> None:
+    colorset = catalog / "Now.colorset"
+    colorset.mkdir(parents=True, exist_ok=True)
+    contents = {
+        "colors": [
+            {"color": colorset_component(APPEARANCES["light"]["now_ui"]), "idiom": "universal"},
+            {
+                "appearances": [{"appearance": "luminosity", "value": "dark"}],
+                "color": colorset_component(APPEARANCES["dark"]["now_ui"]),
+                "idiom": "universal",
+            },
+        ],
+        "info": {"author": "xcode", "version": 1},
+    }
+    (colorset / "Contents.json").write_text(json.dumps(contents, indent=2) + "\n", encoding="utf-8")
+
+
 def main() -> None:
     app_dir = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("Avow")
     bundle = app_dir / "Resources" / "Avow.icon"
@@ -221,6 +253,9 @@ def main() -> None:
     write_menu_bar_image(catalog, "MenuBarIdle", tracking=False)
     write_menu_bar_image(catalog, "MenuBarTracking", tracking=True)
     print(f"Generated menu bar images in {catalog}")
+
+    write_now_color(catalog)
+    print(f"Generated Now color in {catalog}")
 
 
 if __name__ == "__main__":
