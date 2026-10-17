@@ -10,7 +10,7 @@ struct TaskRowView: View {
             HStack(spacing: 8) {
                 Image(systemName: isActive ? "play.fill" : "circle")
                     .font(.caption2)
-                    .foregroundStyle(isActive ? Color.accentColor : Color.secondary)
+                    .foregroundStyle(isActive ? Color.now : Color.secondary)
                     .frame(width: 14)
 
                 Text(task.name)
@@ -27,6 +27,6 @@ struct TaskRowView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(isActive ? "Stop tracking \(task.name)" : "Start tracking \(task.name)")
-        .background(isActive ? Color.accentColor.opacity(0.1) : .clear)
+        .background(isActive ? Color.now.opacity(0.1) : .clear)
     }
 }

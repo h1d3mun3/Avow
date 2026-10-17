@@ -92,7 +92,7 @@ struct QuickPanelView: View {
         return HStack(spacing: 10) {
             Image(systemName: active ? "play.fill" : "circle")
                 .font(.caption)
-                .foregroundStyle(active ? Color.accentColor : .secondary)
+                .foregroundStyle(active ? Color.now : .secondary)
                 .frame(width: 16)
 
             VStack(alignment: .leading, spacing: 1) {
@@ -111,7 +111,7 @@ struct QuickPanelView: View {
             if active {
                 Text("Tracking")
                     .font(.caption)
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(Color.now)
             }
         }
         .padding(.horizontal, 16)

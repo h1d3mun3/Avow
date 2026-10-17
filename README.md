@@ -70,8 +70,8 @@ Opening `Avow.xcodeproj` in Xcode and running it (⌘R) works too.
 
 Two scripts support the app:
 
-- `scripts/gen_avow_icon.py` regenerates the app icon (`Avow/Resources/Avow.icon`) and the menu bar
-  images from the design values at the top of the file.
+- `scripts/gen_avow_icon.py` regenerates the app icon (`Avow/Resources/Avow.icon`), the menu bar
+  images and the `Now` color from the design values at the top of the file.
 - `scripts/package-dmg.sh` packages a signed, notarized `Avow.app` into a distributable DMG.
 
 ## License
