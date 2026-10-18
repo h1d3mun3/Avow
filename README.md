@@ -52,7 +52,7 @@ later see how many hours went into which kind of work.
 
 Requirements:
 
-- macOS 26.0 or later
+- A Mac with Apple silicon running macOS 26.0 or later (Intel Macs are not supported)
 - Xcode 26 or later
 
 ```sh
