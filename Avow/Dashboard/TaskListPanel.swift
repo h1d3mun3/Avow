@@ -159,6 +159,12 @@ struct TaskListPanel: View {
             },
             onRename: { do { try viewModel.rename(task, to: $0) } catch { errorMessage = error.localizedDescription } }
         )
+        .draggable(TaskTransfer(taskID: task.id)) {
+            Text(task.name)
+                .font(.subheadline)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+        }
         .listRowSeparator(.hidden)
         .tag(task.id)
     }
