@@ -33,6 +33,7 @@ struct SidebarView: View {
     @State private var renamingProjectGroup: ProjectGroup?
     @State private var projectGroupToDelete: ProjectGroup?
     @State private var projectForGroupPicker: Project?
+    @State private var dropTargetProjectID: Project.ID?
     @State private var errorMessage: String?
 
     init(selection: Binding<DashboardView.SidebarItem?>, projectRepository: any ProjectRepository) {
@@ -166,6 +167,16 @@ struct SidebarView: View {
                                 .monospacedDigit()
                         }
                     }
+                    .padding(.vertical, 2)
+                    .background(
+                        dropTargetProjectID == project.id ? Color.accentColor.opacity(0.25) : .clear,
+                        in: RoundedRectangle(cornerRadius: 6)
+                    )
+                }
+                .dropDestination(for: TaskTransfer.self) { transfers, _ in
+                    moveTasks(transfers, to: project)
+                } isTargeted: { targeted in
+                    dropTargetProjectID = targeted ? project.id : nil
                 }
                 .contextMenu {
                     Button("Rename") {
@@ -337,6 +348,21 @@ struct SidebarView: View {
             get: { projectForGroupPicker?.id == project.id },
             set: { if !$0 { projectForGroupPicker = nil } }
         )
+    }
+
+    /// Reassigns dropped tasks to the project. Returns false when nothing moved,
+    /// so a task dropped back onto the project it already belongs to is refused.
+    private func moveTasks(_ transfers: [TaskTransfer], to project: Project) -> Bool {
+        do {
+            var moved = false
+            for transfer in transfers {
+                if try repositories.task.move(taskWithID: transfer.taskID, to: project) { moved = true }
+            }
+            return moved
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
     }
 
     private func moveProjects(from source: IndexSet, to destination: Int) {
