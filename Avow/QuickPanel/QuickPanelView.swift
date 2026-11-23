@@ -108,6 +108,7 @@ struct QuickPanelView: View {
                     .foregroundStyle(.tertiary)
                 LauncherSearchField(
                     text: $viewModel.filterText,
+                    placeholder: "Search tasks, or new: name #facet @project +group",
                     onMoveUp: { moveSelection(-1) },
                     onMoveDown: { moveSelection(1) },
                     onSubmit: { activateSelection() },
@@ -125,6 +126,17 @@ struct QuickPanelView: View {
                 emptyState
             } else {
                 taskList
+            }
+
+            // Once a sigil is typed the list holds suggestions, so spell out the keys.
+            if !query.segments.isEmpty {
+                Divider()
+                Text("↩ Create   ⇥ Complete   ↑↓ Choose   esc Close")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 6)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .frame(width: 600, height: 380)
@@ -179,8 +191,9 @@ struct QuickPanelView: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(task.name)
                     .lineLimit(1)
-                if let project = task.project?.name {
-                    Text(project)
+                let detail = taskDetail(task)
+                if !detail.isEmpty {
+                    Text(detail)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
@@ -235,6 +248,17 @@ struct QuickPanelView: View {
             selectionIndex = index
             activateSelection()
         }
+    }
+
+    /// The second line of a task row, written like the text that creates one: `#facet @project +group`.
+    /// Groups belong to the task's project, so they follow it.
+    private func taskDetail(_ task: Task) -> String {
+        var parts = task.facets.map(\.name).sorted().map { "#\($0)" }
+        if let project = task.project {
+            parts.append("@\(project.name)")
+            parts += project.projectGroups.map(\.name).sorted().map { "+\($0)" }
+        }
+        return parts.joined(separator: " ")
     }
 
     private var emptyStateTitle: String {
