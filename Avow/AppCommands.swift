@@ -10,11 +10,20 @@ private struct NewTaskActionKey: FocusedValueKey {
     typealias Value = () -> Void
 }
 
+private struct ShowSidebarItemActionKey: FocusedValueKey {
+    typealias Value = (DashboardView.SidebarItem) -> Void
+}
+
 private struct OpenSettingsActionKey: FocusedValueKey {
     typealias Value = () -> Void
 }
 
 extension FocusedValues {
+    var showSidebarItemAction: ((DashboardView.SidebarItem) -> Void)? {
+        get { self[ShowSidebarItemActionKey.self] }
+        set { self[ShowSidebarItemActionKey.self] = newValue }
+    }
+
     var openSettingsAction: (() -> Void)? {
         get { self[OpenSettingsActionKey.self] }
         set { self[OpenSettingsActionKey.self] = newValue }
@@ -31,8 +40,19 @@ extension FocusedValues {
 struct AppCommands: Commands {
     @FocusedValue(\.newTaskAction) private var newTask
     @FocusedValue(\.openSettingsAction) private var openSettings
+    @FocusedValue(\.showSidebarItemAction) private var showSidebarItem
 
     var body: some Commands {
+        // Jump between the top-level Dashboard pages, in sidebar order.
+        CommandGroup(before: .sidebar) {
+            Button("Overview") { showSidebarItem?(.overview) }
+                .keyboardShortcut("1", modifiers: .command)
+                .disabled(showSidebarItem == nil)
+            Button("Calendar") { showSidebarItem?(.calendar) }
+                .keyboardShortcut("2", modifiers: .command)
+                .disabled(showSidebarItem == nil)
+            Divider()
+        }
         // Settings lives in the Dashboard sidebar rather than a Settings scene, so the standard
         // App-menu "Settings…" (⌘,) slot is routed to selecting that sidebar item.
         CommandGroup(replacing: .appSettings) {

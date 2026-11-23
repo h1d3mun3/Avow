@@ -44,6 +44,7 @@ struct DashboardView: View {
             }
         }
         .focusedSceneValue(\.openSettingsAction) { selection = .settings }
+        .focusedSceneValue(\.showSidebarItemAction) { selection = $0 }
         .focusedSceneValue(\.newTaskAction) { showingNewTask = true }
         .sheet(isPresented: $showingNewTask) {
             NewTaskSheet(preferredProject: shownProject) { project in
