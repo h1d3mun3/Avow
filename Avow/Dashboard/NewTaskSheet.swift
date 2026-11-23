@@ -78,7 +78,7 @@ struct NewTaskSheet: View {
                     .foregroundStyle(.tertiary)
                 LauncherSearchField(
                     text: $text,
-                    placeholder: "Task name  @project  #facet  +group",
+                    placeholder: "Task name  #facet  @project  +group",
                     onMoveUp: { moveSelection(-1) },
                     onMoveDown: { moveSelection(1) },
                     onSubmit: { create() },
@@ -111,7 +111,7 @@ struct NewTaskSheet: View {
 
             Divider()
 
-            Text("↩ Create   ⇥ Complete   ↑↓ Choose   @project  #facet  +group   esc Cancel")
+            Text("↩ Create   ⇥ Complete   ↑↓ Choose   #facet  @project  +group   esc Cancel")
                 .font(.caption)
                 .foregroundStyle(.tertiary)
                 .padding(.horizontal, 16)
