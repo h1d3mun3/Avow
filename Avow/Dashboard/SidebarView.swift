@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import AppKit
 
 struct SidebarView: View {
     @Environment(AppState.self) private var appState
@@ -56,6 +57,18 @@ struct SidebarView: View {
             facetsSection
         }
         .listStyle(.sidebar)
+        // Return on the selected project, facet or group renames it inline. While a name field is
+        // being edited the field editor is first responder and handles Return itself, so leave it be.
+        .onKeyPress(.return) {
+            guard !(NSApp.keyWindow?.firstResponder is NSText), renameInProgress == false else { return .ignored }
+            switch selection {
+            case .project(let project) where !project.isArchived: beginRename(project)
+            case .facet(let facet): beginRename(facet)
+            case .projectGroup(let group): beginRename(group)
+            default: return .ignored
+            }
+            return .handled
+        }
         .onChange(of: projects, initial: true) { _, new in
             viewModel.update(projects: new)
         }
@@ -179,11 +192,7 @@ struct SidebarView: View {
                     dropTargetProjectID = targeted ? project.id : nil
                 }
                 .contextMenu {
-                    Button("Rename") {
-                        renamingProject = project
-                        renameText = project.name
-                        renameFieldFocused = true
-                    }
+                    Button("Rename") { beginRename(project) }
                     Button("Archive") {
                         if case .project(let selected) = selection, selected.id == project.id {
                             selection = .overview
@@ -281,11 +290,7 @@ struct SidebarView: View {
                         }
                     }
                     .contextMenu {
-                        Button("Rename") {
-                            renamingFacet = facet
-                            renameText = facet.name
-                            renameFieldFocused = true
-                        }
+                        Button("Rename") { beginRename(facet) }
                         Divider()
                         Button("Delete…", role: .destructive) {
                             facetToDelete = facet
@@ -320,11 +325,7 @@ struct SidebarView: View {
                         }
                     }
                     .contextMenu {
-                        Button("Rename") {
-                            renamingProjectGroup = group
-                            renameText = group.name
-                            renameFieldFocused = true
-                        }
+                        Button("Rename") { beginRename(group) }
                         Divider()
                         Button("Delete…", role: .destructive) {
                             projectGroupToDelete = group
@@ -367,6 +368,30 @@ struct SidebarView: View {
 
     private func moveProjects(from source: IndexSet, to destination: Int) {
         do { try viewModel.move(from: source, to: destination) } catch { errorMessage = error.localizedDescription }
+    }
+
+    private var renameInProgress: Bool {
+        renamingProject != nil || renamingFacet != nil || renamingProjectGroup != nil
+    }
+
+    /// Opens the row's inline name field. Focus is set asynchronously so it lands after the
+    /// TextField has been inserted into the row.
+    private func beginRename(_ project: Project) {
+        renamingProject = project
+        renameText = project.name
+        DispatchQueue.main.async { renameFieldFocused = true }
+    }
+
+    private func beginRename(_ facet: Facet) {
+        renamingFacet = facet
+        renameText = facet.name
+        DispatchQueue.main.async { renameFieldFocused = true }
+    }
+
+    private func beginRename(_ group: ProjectGroup) {
+        renamingProjectGroup = group
+        renameText = group.name
+        DispatchQueue.main.async { renameFieldFocused = true }
     }
 
     private func commitRename() {

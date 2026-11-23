@@ -20,6 +20,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var quickPanel: QuickPanelController?
     var menuBarStatus: MenuBarStatusController?
 
+    // Keep running (and keep the menu bar timer ticking) after the Dashboard window is closed.
+    // A SwiftUI app whose only scene is a `Window` otherwise quits when that window closes.
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        false
+    }
+
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
         if !hasVisibleWindows {
             openWindow?(WindowID.dashboard)
@@ -96,6 +102,7 @@ struct AvowApp: App {
         }
         .defaultSize(width: 900, height: 600)
         .defaultPosition(.center)
+        .commands { AppCommands() }
     }
 }
 
