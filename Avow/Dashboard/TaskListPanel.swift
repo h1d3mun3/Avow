@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct TaskListPanel: View {
     let viewModel: ProjectDetailViewModel
@@ -10,9 +11,9 @@ struct TaskListPanel: View {
     /// by design — resets to collapsed when the view is rebuilt (e.g. switching projects).
     @State private var showCompleted = false
 
-    /// Id of a freshly added task that should open in inline rename mode with the
-    /// keyboard focus, so the user types its name right in the list. Cleared once
-    /// the row has taken focus.
+    /// Id of a task that should open in inline rename mode with the keyboard focus: a
+    /// freshly added one, or the selected one after Return. Cleared once the row has
+    /// taken focus.
     @State private var editingNewTaskID: Task.ID?
 
     /// Per-task display durations, rounded together (active tasks then completed,
@@ -75,6 +76,13 @@ struct TaskListPanel: View {
             }
             .listStyle(.inset)
             .scrollContentBackground(.hidden)
+            // Return on the selected task renames it inline. While a row's name field is being
+            // edited the field editor is first responder and handles Return itself, so leave it be.
+            .onKeyPress(.return) {
+                guard let id = selectedTaskID, !(NSApp.keyWindow?.firstResponder is NSText) else { return .ignored }
+                editingNewTaskID = id
+                return .handled
+            }
         }
         .errorAlert($errorMessage)
     }

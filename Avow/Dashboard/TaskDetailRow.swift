@@ -7,7 +7,8 @@ struct TaskDetailRow: View {
     /// to the project total. Falls back to the task's own total when not provided.
     var displayDuration: TimeInterval? = nil
     /// When true, the row opens directly in rename mode with the keyboard focus —
-    /// used for a freshly added blank task so the user names it inline.
+    /// used for a freshly added blank task so the user names it inline, and set later
+    /// by the list when Return is pressed on the selected task.
     var beginInEditMode: Bool = false
     /// Called once the row has entered edit mode, so the parent can drop the
     /// "new task" flag and avoid re-triggering on later reappearances.
@@ -108,6 +109,7 @@ struct TaskDetailRow: View {
             Text("All time records for this task will be permanently deleted.")
         }
         .onAppear { if beginInEditMode { startEditing() } }
+        .onChange(of: beginInEditMode) { _, begin in if begin { startEditing() } }
     }
 
     /// Opens the row's inline editor and grabs the keyboard focus. Focus is set
