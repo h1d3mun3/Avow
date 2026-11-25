@@ -77,7 +77,6 @@ struct TaskListPanel: View {
             .scrollContentBackground(.hidden)
         }
         .errorAlert($errorMessage)
-        .focusedSceneValue(\.newTaskAction, addTask)
     }
 
     /// Placeholder shown under the Active tasks header when no task is active,

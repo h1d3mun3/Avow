@@ -13,6 +13,13 @@ struct DashboardView: View {
     }
 
     @State private var selection: SidebarItem? = .overview
+    @State private var showingNewTask = false
+
+    /// The project whose detail is on screen, if any — the default home for a new task.
+    private var shownProject: Project? {
+        if case .project(let project) = selection { return project }
+        return nil
+    }
 
     var body: some View {
         NavigationSplitView {
@@ -37,5 +44,11 @@ struct DashboardView: View {
             }
         }
         .focusedSceneValue(\.openSettingsAction) { selection = .settings }
+        .focusedSceneValue(\.newTaskAction) { showingNewTask = true }
+        .sheet(isPresented: $showingNewTask) {
+            NewTaskSheet(preferredProject: shownProject) { project in
+                selection = .project(project)
+            }
+        }
     }
 }

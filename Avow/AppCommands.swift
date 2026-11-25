@@ -4,7 +4,7 @@ import SwiftUI
 
 // Views that own the "create" behaviour publish it as a focused scene value; the menu commands
 // below read it. A value exists only while its view is on screen, so a menu item is enabled
-// exactly when the action is meaningful (e.g. New Task needs a project detail to be showing).
+// exactly when the action is meaningful (i.e. when the Dashboard window is the key window).
 
 private struct NewProjectActionKey: FocusedValueKey {
     typealias Value = () -> Void
