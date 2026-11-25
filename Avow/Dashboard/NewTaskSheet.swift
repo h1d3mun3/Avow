@@ -1,8 +1,10 @@
 import SwiftUI
 import SwiftData
 
-/// "New Task" (⌘N): a task name plus the project it belongs to — an existing one from the menu,
-/// or a brand-new one typed in place. Reachable from any Dashboard page, not just a project.
+/// "New Task" (⌘N), driven entirely from the keyboard like the quick panel: type a task name,
+/// optionally followed by `@project` to choose where it goes, ↑/↓ to pick among the matching
+/// projects, Return to create, Esc to cancel. An `@project` that matches nothing exactly offers to
+/// create that project too. Reachable from any Dashboard page, not just a project.
 struct NewTaskSheet: View {
     @Environment(Repositories.self) private var repositories
     @Environment(\.dismiss) private var dismiss
@@ -10,120 +12,140 @@ struct NewTaskSheet: View {
     @Query(sort: \Project.sortOrder)
     private var allProjects: [Project]
 
-    /// Preselected project, typically the one currently shown in the Dashboard.
+    /// Only the most recent entry is needed — its task's project is the fallback destination.
+    @Query private var latestEntries: [TimeEntry]
+
+    /// Where a task goes when no `@project` is typed, typically the project shown in the Dashboard.
     let preferredProject: Project?
 
     /// Called with the project the task landed in, so the Dashboard can show it.
     let onCreated: (Project) -> Void
 
-    @State private var name = ""
-    /// nil means "create a new project" (named by `newProjectName`).
-    @State private var selectedProjectID: Project.ID?
-    @State private var newProjectName = ""
-    @State private var didChooseInitialProject = false
+    @State private var text = ""
+    @State private var selectionIndex = 0
     @State private var errorMessage: String?
-    @FocusState private var nameFocused: Bool
+
+    init(preferredProject: Project?, onCreated: @escaping (Project) -> Void) {
+        self.preferredProject = preferredProject
+        self.onCreated = onCreated
+        var latest = FetchDescriptor<TimeEntry>(sortBy: [SortDescriptor(\.startDate, order: .reverse)])
+        latest.fetchLimit = 1
+        _latestEntries = Query(latest)
+    }
+
+    private var query: QuickPanelQuery { QuickPanelQuery(text) }
 
     private var projects: [Project] { allProjects.filter { !$0.isArchived } }
 
-    private var trimmedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
-    private var trimmedNewProjectName: String { newProjectName.trimmingCharacters(in: .whitespacesAndNewlines) }
-    private var isCreatingProject: Bool { selectedProjectID == nil }
+    private var targets: [NewTaskTarget] {
+        let fallback = preferredProject ?? latestEntries.first?.task?.project
+        return NewTaskTarget.targets(
+            for: query,
+            in: projects,
+            defaultProject: NewTaskTarget.defaultProject(lastTracked: fallback, in: projects)
+        )
+    }
 
-    private var canCreate: Bool {
-        !trimmedName.isEmpty && (!isCreatingProject || !trimmedNewProjectName.isEmpty)
+    private var hint: String? {
+        if targets.isEmpty {
+            return query.hasProjectClause ? "Type a project name after @" : "No projects yet — type a name, then @ and a new project name"
+        }
+        return query.taskText.isEmpty ? "Type a task name" : nil
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack {
-                Text("New task")
-                    .font(.headline)
-                Spacer()
-                Button {
-                    dismiss()
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
+            HStack(spacing: 8) {
+                Image(systemName: "plus.circle")
+                    .foregroundStyle(.tertiary)
+                LauncherSearchField(
+                    text: $text,
+                    placeholder: "Task name  @project",
+                    onMoveUp: { moveSelection(-1) },
+                    onMoveDown: { moveSelection(1) },
+                    onSubmit: { create() },
+                    onCancel: { dismiss() }
+                )
+                .frame(height: 22)
             }
-            .padding()
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
 
             Divider()
 
-            VStack(alignment: .leading, spacing: 16) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Task name")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundStyle(.secondary)
-                    TextField("e.g. Write release notes", text: $name)
-                        .textFieldStyle(.roundedBorder)
-                        .focused($nameFocused)
-                        .onSubmit { if canCreate { createTask() } }
-                }
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Project")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundStyle(.secondary)
-                    Picker("Project", selection: $selectedProjectID) {
-                        ForEach(projects) { project in
-                            Text(project.name).tag(Project.ID?.some(project.id))
-                        }
-                        if !projects.isEmpty { Divider() }
-                        Text("New project…").tag(Project.ID?.none)
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    ForEach(Array(targets.enumerated()), id: \.element.id) { index, target in
+                        row(target, index: index)
                     }
-                    .labelsHidden()
-
-                    if isCreatingProject {
-                        TextField("New project name", text: $newProjectName)
-                            .textFieldStyle(.roundedBorder)
-                            .onSubmit { if canCreate { createTask() } }
+                    if let hint {
+                        Text(hint)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
                     }
                 }
             }
-            .padding()
+            .frame(maxHeight: .infinity, alignment: .top)
 
             Divider()
 
-            HStack {
-                Spacer()
-                Button("Cancel") { dismiss() }
-                    .keyboardShortcut(.cancelAction)
-                Button("Create task") { createTask() }
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(!canCreate)
-            }
-            .padding()
+            Text("↩ Create   ↑↓ Choose project   @ Pick a project   esc Cancel")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(width: 340)
-        .onAppear {
-            guard !didChooseInitialProject else { return }
-            didChooseInitialProject = true
-            if let preferred = preferredProject, projects.contains(where: { $0.id == preferred.id }) {
-                selectedProjectID = preferred.id
-            } else {
-                selectedProjectID = projects.first?.id
-            }
-            nameFocused = true
-        }
+        .frame(width: 480, height: 300)
+        .onChange(of: text) { _, _ in selectionIndex = 0 }
         .errorAlert($errorMessage)
     }
 
-    private func createTask() {
-        guard canCreate else { return }
-        do {
-            let project: Project
-            if let id = selectedProjectID, let existing = projects.first(where: { $0.id == id }) {
-                project = existing
-            } else {
-                project = try repositories.project.create(named: trimmedNewProjectName)
+    private func row(_ target: NewTaskTarget, index: Int) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: "plus.circle")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .frame(width: 16)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(query.taskText.isEmpty ? "New task" : "Create \"\(query.taskText)\"")
+                    .lineLimit(1)
+                Text(target.locationLabel)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
-            try repositories.task.add(named: trimmedName, to: project)
-            onCreated(project)
+
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(index == selectionIndex ? Color.accentColor.opacity(0.18) : .clear)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            selectionIndex = index
+            create()
+        }
+    }
+
+    private func moveSelection(_ delta: Int) {
+        selectionIndex = QuickPanelSelection.moved(from: selectionIndex, by: delta, count: targets.count)
+    }
+
+    private func create() {
+        let targets = targets
+        guard !query.taskText.isEmpty, targets.indices.contains(selectionIndex) else {
+            NSSound.beep()
+            return
+        }
+        do {
+            let task = try targets[selectionIndex].createTask(named: query.taskText, using: repositories)
+            if let project = task.project { onCreated(project) }
             dismiss()
         } catch {
             errorMessage = error.localizedDescription

@@ -2,12 +2,22 @@ import SwiftUI
 import SwiftData
 
 /// The Alfred-style quick launcher hosted in the floating panel: type to filter, ↑/↓ to move,
-/// Enter to start/stop the highlighted task, Esc to dismiss.
+/// Enter to start/stop the highlighted task, Esc to dismiss. Text that matches no task can be
+/// turned into a new one: Enter on the trailing "Create" row adds it to the project of the last
+/// tracked task, and typing `name @project` picks the project explicitly. Either way the new task
+/// starts tracking right away.
 struct QuickPanelView: View {
     @Environment(AppState.self) private var appState
+    @Environment(Repositories.self) private var repositories
 
     @Query(sort: \Task.name)
     private var allTasks: [Task]
+
+    @Query(sort: \Project.sortOrder)
+    private var allProjects: [Project]
+
+    /// Only the most recent entry is needed — its task's project is where a new task goes by default.
+    @Query private var latestEntries: [TimeEntry]
 
     @State private var viewModel = MenuBarViewModel()
     @State private var selectionIndex = 0
@@ -15,8 +25,58 @@ struct QuickPanelView: View {
     /// Dismisses the panel.
     let onClose: () -> Void
 
+    init(onClose: @escaping () -> Void) {
+        self.onClose = onClose
+        var latest = FetchDescriptor<TimeEntry>(sortBy: [SortDescriptor(\.startDate, order: .reverse)])
+        latest.fetchLimit = 1
+        _latestEntries = Query(latest)
+    }
+
+    /// One selectable line in the list: an existing task to start, or a task to create and start.
+    private enum Row: Identifiable {
+        case task(Task)
+        case create(name: String, target: NewTaskTarget)
+
+        var id: String {
+            switch self {
+            case .task(let task): task.id.uuidString
+            case .create(_, let target): "create-\(target.id)"
+            }
+        }
+    }
+
+    private var query: QuickPanelQuery { QuickPanelQuery(viewModel.filterText) }
+
     private var flatTasks: [Task] {
         viewModel.tasksByProject.flatMap(\.tasks)
+    }
+
+    private var unarchivedProjects: [Project] {
+        allProjects.filter { !$0.isArchived }
+    }
+
+    /// Where a task created without `@project` goes: the project of the most recently tracked
+    /// task, falling back to the first project when that one is gone or archived.
+    private var defaultProject: Project? {
+        NewTaskTarget.defaultProject(lastTracked: latestEntries.first?.task?.project, in: unarchivedProjects)
+    }
+
+    private var rows: [Row] {
+        if query.hasProjectClause {
+            // Choosing a project: one "create" row per match, nothing until a task name is typed.
+            guard !query.taskText.isEmpty else { return [] }
+            return NewTaskTarget
+                .targets(for: query, in: unarchivedProjects, defaultProject: defaultProject)
+                .map { Row.create(name: query.taskText, target: $0) }
+        }
+        var result = flatTasks.map(Row.task)
+        if !query.taskText.isEmpty,
+           !flatTasks.contains(where: { query.isSameTaskName($0.name) }) {
+            result += NewTaskTarget
+                .targets(for: query, in: unarchivedProjects, defaultProject: defaultProject)
+                .map { Row.create(name: query.taskText, target: $0) }
+        }
+        return result
     }
 
     var body: some View {
@@ -45,7 +105,7 @@ struct QuickPanelView: View {
 
             Divider()
 
-            if flatTasks.isEmpty {
+            if rows.isEmpty {
                 emptyState
             } else {
                 taskList
@@ -73,15 +133,20 @@ struct QuickPanelView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(spacing: 0) {
-                    ForEach(Array(flatTasks.enumerated()), id: \.element.id) { index, task in
-                        row(task, index: index)
-                            .id(task.id)
+                    ForEach(Array(rows.enumerated()), id: \.element.id) { index, item in
+                        Group {
+                            switch item {
+                            case .task(let task): row(task, index: index)
+                            case .create(let name, let target): createRow(name: name, location: target.locationLabel, index: index)
+                            }
+                        }
+                        .id(item.id)
                     }
                 }
             }
             .onChange(of: selectionIndex) { _, index in
-                if flatTasks.indices.contains(index) {
-                    proxy.scrollTo(flatTasks[index].id)
+                if rows.indices.contains(index) {
+                    proxy.scrollTo(rows[index].id)
                 }
             }
         }
@@ -125,9 +190,45 @@ struct QuickPanelView: View {
         }
     }
 
+    private func createRow(name: String, location: String, index: Int) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: "plus.circle")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .frame(width: 16)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text("Create \"\(name)\"")
+                    .lineLimit(1)
+                Text(location)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(index == selectionIndex ? Color.accentColor.opacity(0.18) : .clear)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            selectionIndex = index
+            activateSelection()
+        }
+    }
+
+    private var emptyStateTitle: String {
+        if query.hasProjectClause {
+            return query.taskText.isEmpty ? "Type a task name before @" : "No matching project"
+        }
+        return viewModel.filterText.isEmpty ? "No active tasks" : "No matches"
+    }
+
     private var emptyState: some View {
         VStack(spacing: 6) {
-            Text(viewModel.filterText.isEmpty ? "No active tasks" : "No matches")
+            Text(emptyStateTitle)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
             if viewModel.filterText.isEmpty {
@@ -146,16 +247,27 @@ struct QuickPanelView: View {
     }
 
     private func moveSelection(_ delta: Int) {
-        selectionIndex = QuickPanelSelection.moved(from: selectionIndex, by: delta, count: flatTasks.count)
+        selectionIndex = QuickPanelSelection.moved(from: selectionIndex, by: delta, count: rows.count)
     }
 
     private func activateSelection() {
-        guard flatTasks.indices.contains(selectionIndex) else { return }
-        let task = flatTasks[selectionIndex]
-        if isActive(task) {
-            appState.stopTracking()
-        } else {
-            appState.switchTask(to: task)
+        guard rows.indices.contains(selectionIndex) else { return }
+        switch rows[selectionIndex] {
+        case .task(let task):
+            if isActive(task) {
+                appState.stopTracking()
+            } else {
+                appState.switchTask(to: task)
+            }
+        case .create(let name, let target):
+            do {
+                let task = try target.createTask(named: name, using: repositories)
+                appState.switchTask(to: task)
+            } catch {
+                // The panel has no alert surface; beep and stay open so the typed text isn't lost.
+                NSSound.beep()
+                return
+            }
         }
         onClose()
     }

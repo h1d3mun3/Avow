@@ -7,6 +7,7 @@ import SwiftUI
 /// `TextField` otherwise swallows the vertical arrows, breaking keyboard navigation.
 struct LauncherSearchField: NSViewRepresentable {
     @Binding var text: String
+    var placeholder = "Search tasks…"
     var onMoveUp: () -> Void
     var onMoveDown: () -> Void
     var onSubmit: () -> Void
@@ -14,7 +15,7 @@ struct LauncherSearchField: NSViewRepresentable {
 
     func makeNSView(context: Context) -> NSTextField {
         let field = NSTextField()
-        field.placeholderString = "Search tasks…"
+        field.placeholderString = placeholder
         field.isBezeled = false
         field.drawsBackground = false
         field.focusRingType = .none
