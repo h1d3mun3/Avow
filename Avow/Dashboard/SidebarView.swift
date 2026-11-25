@@ -82,6 +82,7 @@ struct SidebarView: View {
         .sheet(isPresented: $showingNewProject) {
             NewProjectSheet()
         }
+        .focusedSceneValue(\.newProjectAction) { showingNewProject = true }
         .confirmationDialog(
             "Delete \"\(projectToDelete?.name ?? "")\"?",
             isPresented: Binding(get: { projectToDelete != nil }, set: { if !$0 { projectToDelete = nil } }),

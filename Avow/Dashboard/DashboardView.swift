@@ -36,5 +36,6 @@ struct DashboardView: View {
                 SettingsView()
             }
         }
+        .focusedSceneValue(\.openSettingsAction) { selection = .settings }
     }
 }
