@@ -102,6 +102,7 @@ struct AvowApp: App {
         }
         .defaultSize(width: 900, height: 600)
         .defaultPosition(.center)
+        .commands { AppCommands() }
     }
 }
 

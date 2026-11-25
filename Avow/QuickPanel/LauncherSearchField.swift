@@ -7,14 +7,17 @@ import SwiftUI
 /// `TextField` otherwise swallows the vertical arrows, breaking keyboard navigation.
 struct LauncherSearchField: NSViewRepresentable {
     @Binding var text: String
+    var placeholder = "Search tasks…"
     var onMoveUp: () -> Void
     var onMoveDown: () -> Void
     var onSubmit: () -> Void
+    /// Tab key; when nil Tab keeps its default behaviour (moving focus).
+    var onTab: (() -> Void)? = nil
     var onCancel: () -> Void
 
     func makeNSView(context: Context) -> NSTextField {
         let field = NSTextField()
-        field.placeholderString = "Search tasks…"
+        field.placeholderString = placeholder
         field.isBezeled = false
         field.drawsBackground = false
         field.focusRingType = .none
@@ -56,6 +59,9 @@ struct LauncherSearchField: NSViewRepresentable {
                 parent.onMoveDown(); return true
             case #selector(NSResponder.insertNewline(_:)):
                 parent.onSubmit(); return true
+            case #selector(NSResponder.insertTab(_:)):
+                guard let onTab = parent.onTab else { return false }
+                onTab(); return true
             case #selector(NSResponder.cancelOperation(_:)):
                 parent.onCancel(); return true
             default:
