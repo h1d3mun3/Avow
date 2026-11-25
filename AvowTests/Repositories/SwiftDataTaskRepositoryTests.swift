@@ -62,6 +62,76 @@ struct SwiftDataTaskRepositoryTests {
         #expect(remaining.isEmpty)
     }
 
+    @Test func move_reassignsTaskToTargetProject() throws {
+        let (repo, context) = try makeRepository()
+        let source = Project(name: "Source")
+        let target = Project(name: "Target")
+        [source, target].forEach { context.insert($0) }
+        let task = Task(name: "T", project: source)
+        context.insert(task)
+        try context.save()
+
+        let moved = try repo.move(taskWithID: task.id, to: target)
+
+        #expect(moved)
+        #expect(task.project?.id == target.id)
+        #expect(target.tasks.map(\.id) == [task.id])
+        #expect(source.tasks.isEmpty)
+    }
+
+    @Test func move_keepsTimeEntriesWithTheTask() throws {
+        let (repo, context) = try makeRepository()
+        let source = Project(name: "Source")
+        let target = Project(name: "Target")
+        [source, target].forEach { context.insert($0) }
+        let task = Task(name: "T", project: source)
+        context.insert(task)
+        let entry = TimeEntry(startDate: Date(timeIntervalSinceReferenceDate: 0), task: task)
+        entry.endDate = Date(timeIntervalSinceReferenceDate: 3600)
+        context.insert(entry)
+        try context.save()
+
+        try repo.move(taskWithID: task.id, to: target)
+
+        #expect(target.totalDuration == 3600)
+        #expect(source.totalDuration == 0)
+    }
+
+    @Test func move_returnsFalseWhenTaskAlreadyInProject() throws {
+        let (repo, context) = try makeRepository()
+        let project = Project(name: "P")
+        context.insert(project)
+        let task = Task(name: "T", project: project)
+        context.insert(task)
+        try context.save()
+
+        #expect(try repo.move(taskWithID: task.id, to: project) == false)
+    }
+
+    @Test func move_returnsFalseForUnknownID() throws {
+        let (repo, context) = try makeRepository()
+        let project = Project(name: "P")
+        context.insert(project)
+        try context.save()
+
+        #expect(try repo.move(taskWithID: UUID(), to: project) == false)
+    }
+
+    @Test func move_advancesUpdatedAt() throws {
+        let (repo, context) = try makeRepository()
+        let source = Project(name: "Source")
+        let target = Project(name: "Target")
+        [source, target].forEach { context.insert($0) }
+        let task = Task(name: "T", project: source)
+        context.insert(task)
+        task.updatedAt = .distantPast
+        try context.save()
+
+        try repo.move(taskWithID: task.id, to: target)
+
+        #expect(task.updatedAt > .distantPast)
+    }
+
     @Test func updateStatus_advancesUpdatedAt() throws {
         let (repo, context) = try makeRepository()
         let project = Project(name: "P")

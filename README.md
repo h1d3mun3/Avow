@@ -44,7 +44,8 @@ later see how many hours went into which kind of work.
 - **Quick panel.** The global shortcut opens a floating panel to search for a task and start it
   without leaving the app you are in. Change the shortcut in **Settings > Shortcuts**.
 - **Dashboard.** Create projects and their tasks, reorder projects by dragging them in the sidebar,
-  and archive finished ones to keep the sidebar tidy without losing their time.
+  move a task to another project by dragging its row onto that project, and archive finished ones
+  to keep the sidebar tidy without losing their time.
 - **Settings.** Round displayed durations to minutes, export and import JSON backups, export CSV
   reports, and reset all data.
 

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Merged into the generated Info.plist (GENERATE_INFOPLIST_FILE = YES). Declares the type
+	     dragged tasks travel as: SwiftUI's dropDestination only accepts a custom type the system
+	     knows about, and an undeclared one is silently refused. -->
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>com.h1d3mun3.Avow.task</string>
+			<key>UTTypeDescription</key>
+			<string>Avow Task</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

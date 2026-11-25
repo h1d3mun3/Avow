@@ -18,6 +18,8 @@ final class MockTaskRepository: TaskRepository {
     }
     func updateStatus(_ task: Task, to status: TaskStatus) throws { updatedStatuses.append((task, status)) }
     func rename(_ task: Task, to name: String) throws { renamedTasks.append((task, name)) }
+    @discardableResult
+    func move(taskWithID id: UUID, to project: Project) throws -> Bool { true }
     func delete(_ task: Task) throws { deletedTasks.append(task) }
 }
 

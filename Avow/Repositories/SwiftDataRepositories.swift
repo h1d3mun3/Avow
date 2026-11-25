@@ -70,6 +70,17 @@ struct SwiftDataTaskRepository: TaskRepository {
         try context.save()
     }
 
+    @discardableResult
+    func move(taskWithID id: UUID, to project: Project) throws -> Bool {
+        let descriptor = FetchDescriptor<Task>(predicate: #Predicate { $0.id == id })
+        guard let task = try context.fetch(descriptor).first,
+              task.project?.id != project.id else { return false }
+        task.project = project
+        task.updatedAt = .now
+        try context.save()
+        return true
+    }
+
     func delete(_ task: Task) throws {
         context.delete(task)
         try context.save()
