@@ -1,17 +1,24 @@
 import SwiftUI
 import SwiftData
 
-/// "New Task" (⌘N), driven entirely from the keyboard like the quick panel: type a task name,
-/// optionally followed by `@project` to choose where it goes, ↑/↓ to pick among the matching
-/// projects, Return to create, Esc to cancel. An `@project` that matches nothing exactly offers to
-/// create that project too, and `@project` on its own (no task name) creates just the project.
-/// Reachable from any Dashboard page, not just a project.
+/// "New Task or Project…" (⌘N), driven entirely from the keyboard like the quick panel. Type a
+/// task name, optionally followed by `@project`, `#facet` and `+group` (each can be repeated for
+/// facets and groups; names may contain spaces). ↑/↓ chooses among the suggestions for the part
+/// being typed, Tab completes it, Return creates, Esc cancels. Anything named that doesn't exist
+/// yet is created. With no task name, `@Foo` creates just a project and `@Foo +Group` also files it
+/// in a group. Reachable from any Dashboard page, not just a project.
 struct NewTaskSheet: View {
     @Environment(Repositories.self) private var repositories
     @Environment(\.dismiss) private var dismiss
 
     @Query(sort: \Project.sortOrder)
     private var allProjects: [Project]
+
+    @Query(sort: \Facet.name)
+    private var allFacets: [Facet]
+
+    @Query(sort: \ProjectGroup.name)
+    private var allGroups: [ProjectGroup]
 
     /// Only the most recent entry is needed — its task's project is the fallback destination.
     @Query private var latestEntries: [TimeEntry]
@@ -38,32 +45,30 @@ struct NewTaskSheet: View {
 
     private var projects: [Project] { allProjects.filter { !$0.isArchived } }
 
-    private var targets: [NewTaskTarget] {
+    private var plans: [NewTaskPlan] {
         let fallback = preferredProject ?? latestEntries.first?.task?.project
-        return NewTaskTarget.targets(
+        return NewTaskPlan.plans(
             for: query,
-            in: projects,
-            defaultProject: NewTaskTarget.defaultProject(lastTracked: fallback, in: projects)
+            context: NewTaskPlan.Context(
+                projects: projects,
+                facets: allFacets,
+                groups: allGroups,
+                defaultProject: NewTaskTarget.defaultProject(lastTracked: fallback, in: projects)
+            )
         )
     }
 
-    private func title(for target: NewTaskTarget) -> String {
-        switch (query.taskText.isEmpty, target) {
-        case (true, .newProject(let name)): "Create project \"\(name)\""
-        case (true, _): "New task"
-        case (false, _): "Create \"\(query.taskText)\""
-        }
-    }
-
     private var hint: String? {
-        if targets.isEmpty {
-            guard query.hasProjectClause else { return "No projects yet — type a name, then @ and a new project name" }
-            if query.taskText.isEmpty {
-                return query.newProjectName == nil ? "Type a project name after @" : "That project already exists — add a task name"
-            }
-            return "Type a project name after @"
+        guard plans.isEmpty else { return nil }
+        if query.taskText.isEmpty {
+            return query.segments.isEmpty
+                ? "Type a task name — or @NewProject to create a project"
+                : "Type a task name first, or @NewProject to create a project"
         }
-        return query.taskText.isEmpty && !(targets.first?.isNewProject ?? false) ? "Type a task name" : nil
+        if projects.isEmpty && query.projectText == nil {
+            return "No projects yet — add @ and a new project name"
+        }
+        return "Nothing to suggest here"
     }
 
     var body: some View {
@@ -73,10 +78,11 @@ struct NewTaskSheet: View {
                     .foregroundStyle(.tertiary)
                 LauncherSearchField(
                     text: $text,
-                    placeholder: "Task name  @project",
+                    placeholder: "Task name  @project  #facet  +group",
                     onMoveUp: { moveSelection(-1) },
                     onMoveDown: { moveSelection(1) },
                     onSubmit: { create() },
+                    onTab: { completeSelection() },
                     onCancel: { dismiss() }
                 )
                 .frame(height: 22)
@@ -88,8 +94,8 @@ struct NewTaskSheet: View {
 
             ScrollView {
                 LazyVStack(spacing: 0) {
-                    ForEach(Array(targets.enumerated()), id: \.element.id) { index, target in
-                        row(target, index: index)
+                    ForEach(Array(plans.enumerated()), id: \.element.id) { index, plan in
+                        row(plan, index: index)
                     }
                     if let hint {
                         Text(hint)
@@ -105,19 +111,19 @@ struct NewTaskSheet: View {
 
             Divider()
 
-            Text("↩ Create   ↑↓ Choose project   @ Pick or create a project   esc Cancel")
+            Text("↩ Create   ⇥ Complete   ↑↓ Choose   @project  #facet  +group   esc Cancel")
                 .font(.caption)
                 .foregroundStyle(.tertiary)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(width: 480, height: 300)
+        .frame(width: 520, height: 300)
         .onChange(of: text) { _, _ in selectionIndex = 0 }
         .errorAlert($errorMessage)
     }
 
-    private func row(_ target: NewTaskTarget, index: Int) -> some View {
+    private func row(_ plan: NewTaskPlan, index: Int) -> some View {
         HStack(spacing: 10) {
             Image(systemName: "plus.circle")
                 .font(.caption)
@@ -125,12 +131,14 @@ struct NewTaskSheet: View {
                 .frame(width: 16)
 
             VStack(alignment: .leading, spacing: 1) {
-                Text(title(for: target))
+                Text(plan.title)
                     .lineLimit(1)
-                Text(target.locationLabel)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                if !plan.summary.isEmpty {
+                    Text(plan.summary)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
             }
 
             Spacer()
@@ -147,19 +155,24 @@ struct NewTaskSheet: View {
     }
 
     private func moveSelection(_ delta: Int) {
-        selectionIndex = QuickPanelSelection.moved(from: selectionIndex, by: delta, count: targets.count)
+        selectionIndex = QuickPanelSelection.moved(from: selectionIndex, by: delta, count: plans.count)
+    }
+
+    /// Tab: write the highlighted suggestion over the `@project` / `#facet` / `+group` being typed.
+    private func completeSelection() {
+        let plans = plans
+        guard plans.indices.contains(selectionIndex), let name = plans[selectionIndex].completion else { return }
+        text = query.completed(with: name)
     }
 
     private func create() {
-        let targets = targets
-        // Without a task name only a new project can be created (`@Foo`).
-        guard targets.indices.contains(selectionIndex),
-              !query.taskText.isEmpty || targets[selectionIndex].isNewProject else {
+        let plans = plans
+        guard plans.indices.contains(selectionIndex) else {
             NSSound.beep()
             return
         }
         do {
-            let created = try targets[selectionIndex].create(taskNamed: query.taskText, using: repositories)
+            let created = try plans[selectionIndex].perform(using: repositories)
             onCreated(created.project)
             dismiss()
         } catch {

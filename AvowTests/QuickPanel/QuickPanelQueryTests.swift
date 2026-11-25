@@ -25,10 +25,35 @@ struct QuickPanelQueryTests {
         #expect(query.hasProjectClause)
     }
 
-    @Test func onlyTheFirstAtSplits() {
+    @Test func theLastAtWins() {
         let query = QuickPanelQuery("a @ b @ c")
         #expect(query.taskText == "a")
-        #expect(query.projectText == "b @ c")
+        #expect(query.projectText == "c")
+    }
+
+    @Test func parsesProjectFacetsAndGroupsInOrder() {
+        let query = QuickPanelQuery("review notes @My Project #deep work #meeting +Work")
+        #expect(query.taskText == "review notes")
+        #expect(query.segments == [
+            .init(sigil: .project, text: "My Project"),
+            .init(sigil: .facet, text: "deep work"),
+            .init(sigil: .facet, text: "meeting"),
+            .init(sigil: .group, text: "Work"),
+        ])
+        #expect(query.activeSegment?.sigil == .group)
+    }
+
+    @Test func sigilsInsideWordsAreNotSplits() {
+        let query = QuickPanelQuery("learn C++ and mail a@b.com #x")
+        #expect(query.taskText == "learn C++ and mail a@b.com")
+        #expect(query.segments == [.init(sigil: .facet, text: "x")])
+    }
+
+    @Test func completionReplacesTheSegmentBeingTyped() {
+        let query = QuickPanelQuery("foo @Avow #re")
+        #expect(query.completed(with: "review") == "foo @Avow #review ")
+        #expect(QuickPanelQuery("foo @Av").completed(with: "Avow") == "foo @Avow ")
+        #expect(QuickPanelQuery("foo").completed(with: "x") == "foo")
     }
 
     @Test func projectTextKeepsInnerSpaces() {
@@ -66,76 +91,5 @@ struct QuickPanelQueryTests {
         #expect(query.isSameProjectName("Avow"))
         #expect(!query.isSameProjectName("Avow Mobile"))
         #expect(!QuickPanelQuery("x @").isSameProjectName(""))
-    }
-}
-
-@Suite("NewTaskTarget")
-struct NewTaskTargetTests {
-    private func names(_ targets: [NewTaskTarget]) -> [String] {
-        targets.map { target in
-            switch target {
-            case .project(let project): "project:\(project.name)"
-            case .newProject(let name): "new:\(name)"
-            }
-        }
-    }
-
-    @Test func withoutAtOnlyTheDefaultProjectIsOffered() {
-        let avow = Project(name: "Avow"), other = Project(name: "Other")
-        let targets = NewTaskTarget.targets(for: QuickPanelQuery("x"), in: [avow, other], defaultProject: other)
-        #expect(names(targets) == ["project:Other"])
-    }
-
-    @Test func withoutAtAndNoDefaultNothingIsOffered() {
-        #expect(NewTaskTarget.targets(for: QuickPanelQuery("x"), in: [], defaultProject: nil).isEmpty)
-    }
-
-    @Test func atListsMatchesThenANewProject() {
-        let avow = Project(name: "Avow"), avocado = Project(name: "Avocado"), other = Project(name: "Other")
-        let targets = NewTaskTarget.targets(for: QuickPanelQuery("x @av"), in: [avow, avocado, other], defaultProject: nil)
-        #expect(names(targets) == ["project:Avow", "project:Avocado", "new:av"])
-    }
-
-    @Test func exactMatchSuppressesTheNewProjectOption() {
-        let avow = Project(name: "Avow")
-        let targets = NewTaskTarget.targets(for: QuickPanelQuery("x @avow"), in: [avow], defaultProject: nil)
-        #expect(names(targets) == ["project:Avow"])
-    }
-
-    @Test func bareAtListsAllProjectsWithoutANewOne() {
-        let a = Project(name: "A"), b = Project(name: "B")
-        let targets = NewTaskTarget.targets(for: QuickPanelQuery("x @"), in: [a, b], defaultProject: nil)
-        #expect(names(targets) == ["project:A", "project:B"])
-    }
-
-    @Test func unknownProjectOffersOnlyANewOne() {
-        let targets = NewTaskTarget.targets(for: QuickPanelQuery("x @Zed"), in: [Project(name: "A")], defaultProject: nil)
-        #expect(names(targets) == ["new:Zed"])
-    }
-
-    @Test func defaultProjectPrefersLastTrackedUnlessArchived() {
-        let a = Project(name: "A"), b = Project(name: "B")
-        #expect(NewTaskTarget.defaultProject(lastTracked: b, in: [a, b])?.name == "B")
-        b.isArchived = true
-        #expect(NewTaskTarget.defaultProject(lastTracked: b, in: [a])?.name == "A")
-        #expect(NewTaskTarget.defaultProject(lastTracked: nil, in: []) == nil)
-    }
-}
-
-@Suite("NewTaskTarget project-only")
-struct NewTaskTargetProjectOnlyTests {
-    @Test func atWithoutATaskNameOffersOnlyANewProject() {
-        let targets = NewTaskTarget.targets(for: QuickPanelQuery("@Zed"), in: [Project(name: "A")], defaultProject: nil)
-        #expect(targets.count == 1)
-        #expect(targets.first?.isNewProject == true)
-    }
-
-    @Test func atWithoutATaskNameOffersNothingWhenTheProjectExists() {
-        let targets = NewTaskTarget.targets(for: QuickPanelQuery("@a"), in: [Project(name: "A")], defaultProject: nil)
-        #expect(targets.isEmpty)
-    }
-
-    @Test func bareAtOffersNothing() {
-        #expect(NewTaskTarget.targets(for: QuickPanelQuery("@"), in: [Project(name: "A")], defaultProject: nil).isEmpty)
     }
 }

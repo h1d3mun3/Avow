@@ -4,8 +4,9 @@ import SwiftData
 /// The Alfred-style quick launcher hosted in the floating panel: type to filter, ↑/↓ to move,
 /// Enter to start/stop the highlighted task, Esc to dismiss. Text that matches no task can be
 /// turned into a new one: Enter on the trailing "Create" row adds it to the project of the last
-/// tracked task, and typing `name @project` picks the project explicitly. Either way the new task
-/// starts tracking right away.
+/// tracked task. `name @project #facet +group` picks the project, facets and groups explicitly
+/// (Tab completes the one being typed; anything that doesn't exist yet is created). Either way
+/// the new task starts tracking right away.
 struct QuickPanelView: View {
     @Environment(AppState.self) private var appState
     @Environment(Repositories.self) private var repositories
@@ -15,6 +16,12 @@ struct QuickPanelView: View {
 
     @Query(sort: \Project.sortOrder)
     private var allProjects: [Project]
+
+    @Query(sort: \Facet.name)
+    private var allFacets: [Facet]
+
+    @Query(sort: \ProjectGroup.name)
+    private var allGroups: [ProjectGroup]
 
     /// Only the most recent entry is needed — its task's project is where a new task goes by default.
     @Query private var latestEntries: [TimeEntry]
@@ -35,12 +42,12 @@ struct QuickPanelView: View {
     /// One selectable line in the list: an existing task to start, or a task to create and start.
     private enum Row: Identifiable {
         case task(Task)
-        case create(name: String, target: NewTaskTarget)
+        case create(NewTaskPlan)
 
         var id: String {
             switch self {
             case .task(let task): task.id.uuidString
-            case .create(_, let target): "create-\(target.id)"
+            case .create(let plan): "create-\(plan.id)"
             }
         }
     }
@@ -61,19 +68,28 @@ struct QuickPanelView: View {
         NewTaskTarget.defaultProject(lastTracked: latestEntries.first?.task?.project, in: unarchivedProjects)
     }
 
+    /// One plan per suggestion for the segment being typed (see `NewTaskPlan.plans`).
+    private var plans: [NewTaskPlan] {
+        NewTaskPlan.plans(
+            for: query,
+            context: NewTaskPlan.Context(
+                projects: unarchivedProjects,
+                facets: allFacets,
+                groups: allGroups,
+                defaultProject: defaultProject
+            )
+        )
+    }
+
     private var rows: [Row] {
-        if query.hasProjectClause {
-            // Choosing a project: one "create" row per match (or just a new project for `@Foo`).
-            return NewTaskTarget
-                .targets(for: query, in: unarchivedProjects, defaultProject: defaultProject)
-                .map { Row.create(name: query.taskText, target: $0) }
+        // Once a sigil is typed the user is composing a new task, so only create rows are shown.
+        if !query.segments.isEmpty {
+            return plans.map(Row.create)
         }
         var result = flatTasks.map(Row.task)
         if !query.taskText.isEmpty,
            !flatTasks.contains(where: { query.isSameTaskName($0.name) }) {
-            result += NewTaskTarget
-                .targets(for: query, in: unarchivedProjects, defaultProject: defaultProject)
-                .map { Row.create(name: query.taskText, target: $0) }
+            result += plans.map(Row.create)
         }
         return result
     }
@@ -95,6 +111,7 @@ struct QuickPanelView: View {
                     onMoveUp: { moveSelection(-1) },
                     onMoveDown: { moveSelection(1) },
                     onSubmit: { activateSelection() },
+                    onTab: { completeSelection() },
                     onCancel: { onClose() }
                 )
                 .frame(height: 22)
@@ -136,7 +153,7 @@ struct QuickPanelView: View {
                         Group {
                             switch item {
                             case .task(let task): row(task, index: index)
-                            case .create(let name, let target): createRow(title: createTitle(name: name, target: target), location: target.locationLabel, index: index)
+                            case .create(let plan): createRow(title: plan.title, location: plan.summary, index: index)
                             }
                         }
                         .id(item.id)
@@ -199,10 +216,12 @@ struct QuickPanelView: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(title)
                     .lineLimit(1)
-                Text(location)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                if !location.isEmpty {
+                    Text(location)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
             }
 
             Spacer()
@@ -218,14 +237,9 @@ struct QuickPanelView: View {
         }
     }
 
-    private func createTitle(name: String, target: NewTaskTarget) -> String {
-        if name.isEmpty, case .newProject(let projectName) = target { return "Create project \"\(projectName)\"" }
-        return "Create \"\(name)\""
-    }
-
     private var emptyStateTitle: String {
-        if query.hasProjectClause {
-            return query.taskText.isEmpty ? "Type a task name before @, or a new project name after it" : "No matching project"
+        if !query.segments.isEmpty {
+            return query.taskText.isEmpty ? "Type a task name first, or @NewProject to create a project" : "Nothing to suggest here"
         }
         return viewModel.filterText.isEmpty ? "No active tasks" : "No matches"
     }
@@ -254,6 +268,14 @@ struct QuickPanelView: View {
         selectionIndex = QuickPanelSelection.moved(from: selectionIndex, by: delta, count: rows.count)
     }
 
+    /// Tab: write the highlighted suggestion over the `@project` / `#facet` / `+group` being typed.
+    private func completeSelection() {
+        guard rows.indices.contains(selectionIndex),
+              case .create(let plan) = rows[selectionIndex],
+              let name = plan.completion else { return }
+        viewModel.filterText = query.completed(with: name)
+    }
+
     private func activateSelection() {
         guard rows.indices.contains(selectionIndex) else { return }
         switch rows[selectionIndex] {
@@ -263,10 +285,10 @@ struct QuickPanelView: View {
             } else {
                 appState.switchTask(to: task)
             }
-        case .create(let name, let target):
+        case .create(let plan):
             do {
-                // A project-only create (`@Foo`) has no task to track.
-                if let task = try target.create(taskNamed: name, using: repositories).task {
+                // A project-only plan (`@Foo`) has no task to track.
+                if let task = try plan.perform(using: repositories).task {
                     appState.switchTask(to: task)
                 }
             } catch {
