@@ -6,10 +6,6 @@ import SwiftUI
 // below read it. A value exists only while its view is on screen, so a menu item is enabled
 // exactly when the action is meaningful (i.e. when the Dashboard window is the key window).
 
-private struct NewProjectActionKey: FocusedValueKey {
-    typealias Value = () -> Void
-}
-
 private struct NewTaskActionKey: FocusedValueKey {
     typealias Value = () -> Void
 }
@@ -24,11 +20,6 @@ extension FocusedValues {
         set { self[OpenSettingsActionKey.self] = newValue }
     }
 
-    var newProjectAction: (() -> Void)? {
-        get { self[NewProjectActionKey.self] }
-        set { self[NewProjectActionKey.self] = newValue }
-    }
-
     var newTaskAction: (() -> Void)? {
         get { self[NewTaskActionKey.self] }
         set { self[NewTaskActionKey.self] = newValue }
@@ -38,7 +29,6 @@ extension FocusedValues {
 // MARK: - Commands
 
 struct AppCommands: Commands {
-    @FocusedValue(\.newProjectAction) private var newProject
     @FocusedValue(\.newTaskAction) private var newTask
     @FocusedValue(\.openSettingsAction) private var openSettings
 
@@ -51,13 +41,11 @@ struct AppCommands: Commands {
                 .disabled(openSettings == nil)
         }
         CommandGroup(replacing: .newItem) {
-            // New Task is the far more frequent action, so it gets the plain ⌘N.
-            Button("New Task") { newTask?() }
+            // One entry point for both: the sheet takes `name @project`, and `@project` alone creates
+            // just a project, so a separate New Project command would be redundant.
+            Button("New Task or Project…") { newTask?() }
                 .keyboardShortcut("n", modifiers: .command)
                 .disabled(newTask == nil)
-            Button("New Project") { newProject?() }
-                .keyboardShortcut("n", modifiers: [.command, .shift])
-                .disabled(newProject == nil)
         }
     }
 }

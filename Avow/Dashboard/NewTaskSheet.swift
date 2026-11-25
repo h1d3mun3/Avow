@@ -4,7 +4,8 @@ import SwiftData
 /// "New Task" (⌘N), driven entirely from the keyboard like the quick panel: type a task name,
 /// optionally followed by `@project` to choose where it goes, ↑/↓ to pick among the matching
 /// projects, Return to create, Esc to cancel. An `@project` that matches nothing exactly offers to
-/// create that project too. Reachable from any Dashboard page, not just a project.
+/// create that project too, and `@project` on its own (no task name) creates just the project.
+/// Reachable from any Dashboard page, not just a project.
 struct NewTaskSheet: View {
     @Environment(Repositories.self) private var repositories
     @Environment(\.dismiss) private var dismiss
@@ -46,11 +47,23 @@ struct NewTaskSheet: View {
         )
     }
 
+    private func title(for target: NewTaskTarget) -> String {
+        switch (query.taskText.isEmpty, target) {
+        case (true, .newProject(let name)): "Create project \"\(name)\""
+        case (true, _): "New task"
+        case (false, _): "Create \"\(query.taskText)\""
+        }
+    }
+
     private var hint: String? {
         if targets.isEmpty {
-            return query.hasProjectClause ? "Type a project name after @" : "No projects yet — type a name, then @ and a new project name"
+            guard query.hasProjectClause else { return "No projects yet — type a name, then @ and a new project name" }
+            if query.taskText.isEmpty {
+                return query.newProjectName == nil ? "Type a project name after @" : "That project already exists — add a task name"
+            }
+            return "Type a project name after @"
         }
-        return query.taskText.isEmpty ? "Type a task name" : nil
+        return query.taskText.isEmpty && !(targets.first?.isNewProject ?? false) ? "Type a task name" : nil
     }
 
     var body: some View {
@@ -92,7 +105,7 @@ struct NewTaskSheet: View {
 
             Divider()
 
-            Text("↩ Create   ↑↓ Choose project   @ Pick a project   esc Cancel")
+            Text("↩ Create   ↑↓ Choose project   @ Pick or create a project   esc Cancel")
                 .font(.caption)
                 .foregroundStyle(.tertiary)
                 .padding(.horizontal, 16)
@@ -112,7 +125,7 @@ struct NewTaskSheet: View {
                 .frame(width: 16)
 
             VStack(alignment: .leading, spacing: 1) {
-                Text(query.taskText.isEmpty ? "New task" : "Create \"\(query.taskText)\"")
+                Text(title(for: target))
                     .lineLimit(1)
                 Text(target.locationLabel)
                     .font(.caption)
@@ -139,13 +152,15 @@ struct NewTaskSheet: View {
 
     private func create() {
         let targets = targets
-        guard !query.taskText.isEmpty, targets.indices.contains(selectionIndex) else {
+        // Without a task name only a new project can be created (`@Foo`).
+        guard targets.indices.contains(selectionIndex),
+              !query.taskText.isEmpty || targets[selectionIndex].isNewProject else {
             NSSound.beep()
             return
         }
         do {
-            let task = try targets[selectionIndex].createTask(named: query.taskText, using: repositories)
-            if let project = task.project { onCreated(project) }
+            let created = try targets[selectionIndex].create(taskNamed: query.taskText, using: repositories)
+            onCreated(created.project)
             dismiss()
         } catch {
             errorMessage = error.localizedDescription

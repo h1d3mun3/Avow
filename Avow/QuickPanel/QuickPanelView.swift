@@ -63,8 +63,7 @@ struct QuickPanelView: View {
 
     private var rows: [Row] {
         if query.hasProjectClause {
-            // Choosing a project: one "create" row per match, nothing until a task name is typed.
-            guard !query.taskText.isEmpty else { return [] }
+            // Choosing a project: one "create" row per match (or just a new project for `@Foo`).
             return NewTaskTarget
                 .targets(for: query, in: unarchivedProjects, defaultProject: defaultProject)
                 .map { Row.create(name: query.taskText, target: $0) }
@@ -137,7 +136,7 @@ struct QuickPanelView: View {
                         Group {
                             switch item {
                             case .task(let task): row(task, index: index)
-                            case .create(let name, let target): createRow(name: name, location: target.locationLabel, index: index)
+                            case .create(let name, let target): createRow(title: createTitle(name: name, target: target), location: target.locationLabel, index: index)
                             }
                         }
                         .id(item.id)
@@ -190,7 +189,7 @@ struct QuickPanelView: View {
         }
     }
 
-    private func createRow(name: String, location: String, index: Int) -> some View {
+    private func createRow(title: String, location: String, index: Int) -> some View {
         HStack(spacing: 10) {
             Image(systemName: "plus.circle")
                 .font(.caption)
@@ -198,7 +197,7 @@ struct QuickPanelView: View {
                 .frame(width: 16)
 
             VStack(alignment: .leading, spacing: 1) {
-                Text("Create \"\(name)\"")
+                Text(title)
                     .lineLimit(1)
                 Text(location)
                     .font(.caption)
@@ -219,9 +218,14 @@ struct QuickPanelView: View {
         }
     }
 
+    private func createTitle(name: String, target: NewTaskTarget) -> String {
+        if name.isEmpty, case .newProject(let projectName) = target { return "Create project \"\(projectName)\"" }
+        return "Create \"\(name)\""
+    }
+
     private var emptyStateTitle: String {
         if query.hasProjectClause {
-            return query.taskText.isEmpty ? "Type a task name before @" : "No matching project"
+            return query.taskText.isEmpty ? "Type a task name before @, or a new project name after it" : "No matching project"
         }
         return viewModel.filterText.isEmpty ? "No active tasks" : "No matches"
     }
@@ -261,8 +265,10 @@ struct QuickPanelView: View {
             }
         case .create(let name, let target):
             do {
-                let task = try target.createTask(named: name, using: repositories)
-                appState.switchTask(to: task)
+                // A project-only create (`@Foo`) has no task to track.
+                if let task = try target.create(taskNamed: name, using: repositories).task {
+                    appState.switchTask(to: task)
+                }
             } catch {
                 // The panel has no alert surface; beep and stay open so the typed text isn't lost.
                 NSSound.beep()

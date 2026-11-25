@@ -121,3 +121,21 @@ struct NewTaskTargetTests {
         #expect(NewTaskTarget.defaultProject(lastTracked: nil, in: []) == nil)
     }
 }
+
+@Suite("NewTaskTarget project-only")
+struct NewTaskTargetProjectOnlyTests {
+    @Test func atWithoutATaskNameOffersOnlyANewProject() {
+        let targets = NewTaskTarget.targets(for: QuickPanelQuery("@Zed"), in: [Project(name: "A")], defaultProject: nil)
+        #expect(targets.count == 1)
+        #expect(targets.first?.isNewProject == true)
+    }
+
+    @Test func atWithoutATaskNameOffersNothingWhenTheProjectExists() {
+        let targets = NewTaskTarget.targets(for: QuickPanelQuery("@a"), in: [Project(name: "A")], defaultProject: nil)
+        #expect(targets.isEmpty)
+    }
+
+    @Test func bareAtOffersNothing() {
+        #expect(NewTaskTarget.targets(for: QuickPanelQuery("@"), in: [Project(name: "A")], defaultProject: nil).isEmpty)
+    }
+}

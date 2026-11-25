@@ -22,13 +22,25 @@ enum NewTaskTarget: Identifiable {
         }
     }
 
+    var isNewProject: Bool {
+        if case .newProject = self { return true }
+        return false
+    }
+
     /// The targets to offer for `query`, best first.
+    /// - With `@` and no task name (`@Foo`): just a new project of that name, unless one already
+    ///   exists — there is no task to place, so only creating the project makes sense.
     /// - With `@`: every project matching the text after it, then — unless one matches exactly — a
     ///   new project of that name.
     /// - Without `@`: just `defaultProject`.
     static func targets(for query: QuickPanelQuery, in projects: [Project], defaultProject: Project?) -> [NewTaskTarget] {
         guard query.hasProjectClause else {
             return defaultProject.map { [.project($0)] } ?? []
+        }
+        if query.taskText.isEmpty {
+            guard let newName = query.newProjectName,
+                  !projects.contains(where: { query.isSameProjectName($0.name) }) else { return [] }
+            return [.newProject(newName)]
         }
         var result = projects
             .filter { query.matches(projectName: $0.name) }
@@ -47,14 +59,16 @@ enum NewTaskTarget: Identifiable {
         return projects.first
     }
 
-    /// Creates the task (and the project first, for `.newProject`).
+    /// Creates the project first for `.newProject`, then the task in it. An empty `taskName` creates
+    /// only the project (`task` is nil).
     @discardableResult
-    func createTask(named name: String, using repositories: Repositories) throws -> Task {
+    func create(taskNamed taskName: String, using repositories: Repositories) throws -> (project: Project, task: Task?) {
         let project: Project
         switch self {
         case .project(let existing): project = existing
         case .newProject(let projectName): project = try repositories.project.create(named: projectName)
         }
-        return try repositories.task.add(named: name, to: project)
+        guard !taskName.isEmpty else { return (project, nil) }
+        return (project, try repositories.task.add(named: taskName, to: project))
     }
 }
